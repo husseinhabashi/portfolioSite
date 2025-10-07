@@ -91,6 +91,7 @@ async function setupDatabase() {
         event_type VARCHAR(50) NOT NULL,
         session_id VARCHAR(64),
         invite_hash VARCHAR(64),
+        invite_id INTEGER REFERENCES invites(id) ON DELETE SET NULL,
         ip_address VARCHAR(45),
         user_agent TEXT,
         details JSONB,

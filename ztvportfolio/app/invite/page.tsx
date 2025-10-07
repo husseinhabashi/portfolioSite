@@ -37,15 +37,17 @@ export default function InvitePage() {
       }
 
       // Create session
-      const sessionResponse = await fetch("/api/session/create", {
+      const sessionResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/session/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inviteHash, signature }),
       })
 
+      const rawText = await sessionResponse.text()
+      console.log("📡 Raw session response:", rawText, sessionResponse.status)
+
       if (!sessionResponse.ok) {
-        const data = await sessionResponse.json()
-        throw new Error(data.error || "Session creation failed")
+        throw new Error(`Session creation failed: ${rawText}`)
       }
 
       // Redirect to home page

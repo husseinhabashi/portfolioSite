@@ -26,10 +26,17 @@ export async function GET(request: NextRequest) {
     const ipBinding = await getIpBinding(session.invite_id)
 
     if (ipBinding && ipBinding.bound_ip !== ip) {
-      await createAuditLog("ip_mismatch_session", session.invite_id, sessionFingerprint, ip, userAgent, {
-        boundIp: ipBinding.bound_ip,
-        requestIp: ip,
-      })
+      await createAuditLog(
+        "ip_mismatch_session",
+        String(session.invite_id),
+        sessionFingerprint,
+        ip,
+        userAgent,
+        {
+      boundIp: ipBinding.bound_ip,
+      requestIp: ip,
+        }
+    )
       return NextResponse.json(
         {
           error: "IP address mismatch. Your session is bound to a different IP.",
