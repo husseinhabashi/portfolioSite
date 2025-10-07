@@ -92,7 +92,7 @@ async function setupDatabase() {
         session_id VARCHAR(64),
         invite_hash VARCHAR(64),
         invite_id INTEGER REFERENCES invites(id) ON DELETE SET NULL,
-        ip_address VARCHAR(45),
+        ip_address VARCHAR(45) NOT NULL,
         user_agent TEXT,
         details JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
