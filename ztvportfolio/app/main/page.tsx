@@ -39,7 +39,6 @@ export default function MainPage() {
       )}
 
       <div className="mt-12 text-center">
-        <Activity className="h-6 w-6 inline-block mr-2 animate-spin" />
         <Typewriter text="Security telemetry initialized..." speed={35} />
       </div>
 

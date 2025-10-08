@@ -20,5 +20,12 @@ export function Typewriter({ text, speed = 50, className }: TypewriterProps) {
     return () => clearInterval(interval)
   }, [text, speed])
 
-  return <p className={className}>{displayed}</p>
+  return (
+    <div className="inline-block text-left">
+      <p className={`${className} whitespace-pre`}>
+        {displayed}
+        <span className="animate-pulse">|</span>
+      </p>
+    </div>
+  )
 }
