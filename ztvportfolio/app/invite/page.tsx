@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -24,57 +22,59 @@ export default function InvitePage() {
     setLoading(true)
 
     try {
-      // Verify invite with server
-      const verifyResponse = await fetch("/api/invites/verify", {
+      // ✅ Verify invite on backend
+      const res = await fetch("/api/invites/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inviteHash, signature }),
       })
 
-      if (!verifyResponse.ok) {
-        const data = await verifyResponse.json()
-        throw new Error(data.error || "Verification failed")
+      const text = await res.text()
+      console.log("📡 RAW RESPONSE:", text)
+
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error("Server returned non-JSON response")
       }
+      console.log("📡 Verification response:", data)
 
-      // Create session
-      const sessionResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/session/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inviteHash, signature }),
-      })
+      if (!res.ok) throw new Error(data.error || "Verification failed")
 
-      const rawText = await sessionResponse.text()
-      console.log("📡 Raw session response:", rawText, sessionResponse.status)
+      // ✅ Redirect based on backend response
+      const redirectPath = data.redirect || "/main"
+      console.log("✅ Redirecting to:", redirectPath)
+      router.push(redirectPath)
 
-      if (!sessionResponse.ok) {
-        throw new Error(`Session creation failed: ${rawText}`)
-      }
-
-      // Redirect to home page
-      router.push("/")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      console.error("❌ Verification error:", err)
+      setError(err instanceof Error ? err.message : "An unknown error occurred")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-black text-green-400 font-mono p-4">
+      <Card className="w-full max-w-md border-green-700 bg-black text-green-400">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Shield className="h-8 w-8 text-primary" />
+            <div className="p-3 bg-green-900/20 rounded-full border border-green-700">
+              <Shield className="h-8 w-8 text-green-400" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Secure Access Portal</CardTitle>
-          <CardDescription>Enter your cryptographically signed invite credentials</CardDescription>
+          <CardTitle className="text-2xl font-bold">Secure Access Portal</CardTitle>
+          <CardDescription className="text-green-500">
+            Enter your cryptographically signed invite credentials
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Invite Hash Field */}
             <div className="space-y-2">
-              <Label htmlFor="inviteHash" className="flex items-center gap-2">
+              <Label htmlFor="inviteHash" className="flex items-center gap-2 text-green-400">
                 <Key className="h-4 w-4" />
                 Invite Hash
               </Label>
@@ -85,12 +85,13 @@ export default function InvitePage() {
                 value={inviteHash}
                 onChange={(e) => setInviteHash(e.target.value)}
                 required
-                className="font-mono text-sm"
+                className="font-mono text-sm border-green-700 bg-black text-green-400 placeholder-green-600 focus:border-green-400 focus:ring-green-400"
               />
             </div>
 
+            {/* Signature Field */}
             <div className="space-y-2">
-              <Label htmlFor="signature" className="flex items-center gap-2">
+              <Label htmlFor="signature" className="flex items-center gap-2 text-green-400">
                 <Lock className="h-4 w-4" />
                 Digital Signature
               </Label>
@@ -101,22 +102,28 @@ export default function InvitePage() {
                 value={signature}
                 onChange={(e) => setSignature(e.target.value)}
                 required
-                className="font-mono text-sm"
+                className="font-mono text-sm border-green-700 bg-black text-green-400 placeholder-green-600 focus:border-green-400 focus:ring-green-400"
               />
             </div>
 
+            {/* Error Alert */}
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-red-700 bg-red-900/20 text-red-400">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full bg-green-500 text-black hover:bg-green-400 transition"
+              disabled={loading}
+            >
               {loading ? "Verifying..." : "Verify & Enter"}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-6 text-center text-sm text-green-500">
             <p>This portal uses cryptographic verification.</p>
             <p className="mt-1">Access requires a valid signed invite key.</p>
           </div>

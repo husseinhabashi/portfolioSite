@@ -11,6 +11,12 @@ CREATE TABLE IF NOT EXISTS invites (
   is_active BOOLEAN DEFAULT true
 );
 
+CREATE TABLE visitors (
+  id SERIAL PRIMARY KEY,
+  ip VARCHAR(45) NOT NULL,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Sessions table: tracks all active sessions with fingerprints
 CREATE TABLE IF NOT EXISTS sessions (
   id SERIAL PRIMARY KEY,
@@ -36,6 +42,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   id SERIAL PRIMARY KEY,
   event_type VARCHAR(50) NOT NULL, -- 'access_granted', 'access_denied', 'ip_mismatch', 'devtools_detected', etc.
   invite_id INTEGER REFERENCES invites(id) ON DELETE SET NULL,
+  INSERT INTO audit_logs (event_type, ip_address, user_agent) VALUES ('website_visit', :ip_address, :user_agent)
   session_fingerprint VARCHAR(64),
   ip_address VARCHAR(45),
   user_agent TEXT,

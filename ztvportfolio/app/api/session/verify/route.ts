@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify IP binding
-    const ipBinding = await getIpBinding(session.invite_id)
+    const ipBinding = await getIpBinding(session.invite_id.toString())
 
     if (ipBinding && ipBinding.bound_ip !== ip) {
       await createAuditLog(

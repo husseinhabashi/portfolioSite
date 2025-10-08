@@ -21,7 +21,7 @@ export function getSql(): NeonQueryFunction<false, false> {
  * Database types
  */
 export interface Invite {
-  id: number
+  id: string
   email: string
   invite_hash: string
   signature: string
@@ -118,7 +118,7 @@ export async function getInviteById(id: number) {
 
 // Session operations
 export async function createSession(
-  inviteId: number,
+  inviteId: string,
   sessionFingerprint: string,
   ipAddress: string,
   userAgent: string,
@@ -152,7 +152,7 @@ export async function updateSessionLastSeen(fingerprint: string) {
 }
 
 // IP binding operations
-export async function createIpBinding(inviteId: number, boundIp: string) {
+export async function createIpBinding(inviteId: string | number, boundIp: string) {
   const sql = getSql()
   const result = await sql`
     INSERT INTO ip_bindings (invite_id, bound_ip)
@@ -163,7 +163,7 @@ export async function createIpBinding(inviteId: number, boundIp: string) {
   return result[0] as IpBinding
 }
 
-export async function getIpBinding(inviteId: number) {
+export async function getIpBinding(inviteId: string) {
   const sql = getSql()
   const result = await sql`
     SELECT * FROM ip_bindings

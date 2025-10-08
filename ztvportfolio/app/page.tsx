@@ -1,6 +1,9 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Shield, Lock, Fingerprint, Eye, Terminal, Database, AlertTriangle } from "lucide-react"
 import { SessionFingerprintDisplay } from "@/components/session-fingerprint-display"
@@ -9,6 +12,19 @@ import { TrackingPixel } from "@/components/tracking-pixel"
 import { SecurityControls } from "@/components/security-controls"
 
 export default function HomePage() {
+  const [ip, setIp] = useState<string | null>(null)
+
+  // 🔍 Fetch IP on load
+  useEffect(() => {
+    fetch("/api/ip")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("📡 IP saved:", data.ip)
+        setIp(data.ip)
+      })
+      .catch((err) => console.error("❌ IP log failed:", err))
+  }, [])
+  
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono">
       <SecurityControls />
@@ -51,8 +67,15 @@ export default function HomePage() {
           <br /> cryptographic authentication, session fingerprinting, IP binding, and leak tracking.
         </p>
 
-        <p className="text-red-500 text-lg font-bold animate-pulse flex items-center justify-center gap-2 mt-4">
-          <AlertTriangle className="h-5 w-5" /> ⚠️ Your IP is being tracked...
+        <p className="text-red-500 text-lg font-bold animate-pulse flex flex-col items-center justify-center gap-2 mt-4">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" /> ⚠️ Your IP is being tracked...
+          </span>
+          {ip && (
+            <span className="text-green-300 text-sm">
+              📡 Your current IP: <span className="font-bold">{ip}</span>
+            </span>
+          )}
         </p>
 
         <div className="flex flex-wrap gap-3 justify-center pt-6">

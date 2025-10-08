@@ -8,65 +8,63 @@ export async function POST(request: NextRequest) {
     const { inviteHash, signature } = await request.json()
 
     if (!inviteHash || !signature) {
-      return NextResponse.json(
-        { error: "Invite hash and signature are required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Invite hash and signature are required" }, { status: 400 })
     }
 
-    // Get client IP and user agent for audit logging
+    // ✅ Safe IP detection even on localhost
     const ip =
-      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
-      "unknown"
+      "127.0.0.1"
     const userAgent = request.headers.get("user-agent") || "unknown"
 
-    // Verify signature with server's public key
     const publicKey = getServerPublicKey()
     const isValidSignature = verifySignature(inviteHash, signature, publicKey)
 
     if (!isValidSignature) {
-      await createAuditLog("signature_verification_failed", inviteHash, null, ip, userAgent, {
-        inviteHash,
-        reason: "Invalid signature",
-      })
+      await safeLog("signature_verification_failed", inviteHash, ip, userAgent, "Invalid signature")
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }
 
-    // Check if invite exists in database
     const invite = await getInviteByHash(inviteHash)
-
     if (!invite) {
-      await createAuditLog("invite_not_found", inviteHash, null, ip, userAgent, { inviteHash })
+      await safeLog("invite_not_found", inviteHash, ip, userAgent)
       return NextResponse.json({ error: "Invite not found" }, { status: 404 })
     }
 
-    // Check if invite is expired
     if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-      await createAuditLog("invite_expired", invite.invite_hash, null, ip, userAgent, { inviteHash })
-      return NextResponse.json({ error: "Invite has expired" }, { status: 401 })
+      await safeLog("invite_expired", invite.invite_hash, ip, userAgent)
+      return NextResponse.json({ error: "Invite expired" }, { status: 401 })
     }
 
-    // Check if invite is active
     if (!invite.is_active) {
-      await createAuditLog("invite_inactive", invite.invite_hash, null, ip, userAgent, { inviteHash })
-      return NextResponse.json({ error: "Invite is no longer active" }, { status: 401 })
+      await safeLog("invite_inactive", invite.invite_hash, ip, userAgent)
+      return NextResponse.json({ error: "Invite inactive" }, { status: 401 })
     }
 
-    // Log successful verification
-    await createAuditLog("invite_verified", invite.invite_hash, null, ip, userAgent, { inviteHash })
+    // ✅ Success — log and send redirect instruction
+    await safeLog("invite_verified", invite.invite_hash, ip, userAgent)
 
-    console.log("[v0] ✅ Invite verified successfully:", inviteHash)
+    console.log("✅ Invite verified:", inviteHash)
 
     return NextResponse.json({
       success: true,
+      redirect: "/main", // 👈 this tells the frontend where to go
       invite: {
         email: invite.email,
         inviteHash: invite.invite_hash,
       },
     })
   } catch (error) {
-    console.error("[v0] ❌ Error verifying invite:", error)
-    return NextResponse.json({ error: "Failed to verify invite" }, { status: 500 })
+    console.error("❌ Verify invite error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+async function safeLog(event: string, hash: string, ip: string, ua: string, reason?: string) {
+  try {
+    await createAuditLog(event, hash, null, ip, ua, { inviteHash: hash, reason })
+  } catch (e) {
+    console.error("⚠️ Audit log failed:", e)
   }
 }
