@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Cookies from "js-cookie"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,11 @@ export default function InvitePage() {
   const [signature, setSignature] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+   useEffect(() => {
+    Cookies.remove("session_fingerprint")
+    console.log("🧹 Session fingerprint cleared on invite page load")
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
