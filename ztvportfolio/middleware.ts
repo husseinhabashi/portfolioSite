@@ -10,7 +10,8 @@ export function middleware(request: NextRequest) {
     "/api/invites/generate",
     "/api/session/create",   // ✅ NEW
     "/invite",
-    "/main"              
+    "/main",
+    "/api/ip"              
   ]
 
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
