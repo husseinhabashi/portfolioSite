@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Shield, Activity, Lock } from "lucide-react"
+import { Typewriter } from "@/components/ui/typewriter"
 
 export default function MainPage() {
   const [ip, setIp] = useState<string | null>(null)
@@ -14,25 +15,37 @@ export default function MainPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center">
-      <Shield className="h-16 w-16 text-green-400 mb-4 animate-pulse" />
-      <h1 className="text-5xl font-bold mb-2">Welcome to Zero Trust Vault</h1>
-      <p className="text-xl text-green-300">Access Granted ✅</p>
+    <div className="min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center text-center p-4">
+      <Shield className="h-16 w-16 text-green-400 mb-6 animate-pulse" />
+
+      <Typewriter
+        text="Welcome to Zero Trust Vault"
+        speed={70}
+        className="text-5xl font-bold mb-2"
+      />
+
+      <Typewriter
+        text="Access Granted ✅"
+        speed={50}
+        className="text-xl text-green-300 mt-2"
+      />
 
       {ip && (
-        <p className="mt-6 text-sm text-green-500">
-          Your session is active from IP: <span className="font-bold">{ip}</span>
-        </p>
+        <Typewriter
+          text={`Your session is active from IP: ${ip}`}
+          speed={40}
+          className="mt-6 text-sm text-green-500"
+        />
       )}
 
       <div className="mt-12 text-center">
         <Activity className="h-6 w-6 inline-block mr-2 animate-spin" />
-        <span>Security telemetry initialized...</span>
+        <Typewriter text="Security telemetry initialized..." speed={35} />
       </div>
 
       <div className="mt-4">
         <Lock className="h-5 w-5 inline-block mr-2" />
-        <span>All actions are being monitored.</span>
+        <Typewriter text="All actions are being monitored." speed={35} />
       </div>
     </div>
   )
