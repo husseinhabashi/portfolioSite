@@ -8,6 +8,7 @@ import {
   createAuditLog,
   getSessionByFingerprint,
   updateSessionLastSeen,
+  markInviteUsed,
 } from "@/lib/db"
 import { getServerPublicKey } from "@/lib/env"
 
@@ -15,40 +16,36 @@ export async function POST(request: NextRequest) {
   try {
     const { inviteHash, signature } = await request.json()
 
-    // ✅ Capture client info (safe for localhost too)
+    // Client info (safe default on localhost)
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "127.0.0.1"
     const userAgent = request.headers.get("user-agent") || "unknown"
 
-    // ✅ Verify ECDSA signature
+    // Verify signature
     const publicKey = getServerPublicKey()
     const isValidSignature = verifySignature(inviteHash, signature, publicKey)
-
     if (!isValidSignature) {
-      await createAuditLog("session_creation_failed", null, null, ip, userAgent, {
-        reason: "Invalid signature",
-      })
+      await createAuditLog("session_creation_failed", null, null, ip, userAgent, { reason: "Invalid signature" })
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }
 
-    // ✅ Get invite
+    // Load invite
     const invite = await getInviteByHash(inviteHash)
     if (!invite) {
-      await createAuditLog("session_creation_failed", null, null, ip, userAgent, {
-        reason: "Invite not found",
-      })
+      await createAuditLog("session_creation_failed", null, null, ip, userAgent, { reason: "Invite not found" })
       return NextResponse.json({ error: "Invite not found" }, { status: 404 })
     }
 
-    const inviteId = String(invite.id) // 👈 FIX type issues once and for all
+    // If your DB funcs want a string id, keep this
+    const invite_hash = invite.invite_hash
 
-    // ✅ IP Binding Check
-    const existingBinding = await getIpBinding(inviteId)
+    // IP binding logic
+    const existingBinding = await getIpBinding(invite_hash)
     if (existingBinding) {
       if (existingBinding.bound_ip !== ip) {
-        await createAuditLog("ip_mismatch", inviteId, null, ip, userAgent, {
+        await createAuditLog("ip_mismatch", invite_hash, null, ip, userAgent, {
           boundIp: existingBinding.bound_ip,
           requestIp: ip,
         })
@@ -58,40 +55,57 @@ export async function POST(request: NextRequest) {
         )
       }
     } else {
-      await createIpBinding(inviteId, ip)
-      await createAuditLog("ip_binding_created", inviteId, null, ip, userAgent, { boundIp: ip })
-      console.log("[v0] ✅ IP binding created for invite:", inviteId, "IP:", ip)
+      await createIpBinding(invite_hash, ip)
+      await createAuditLog("ip_binding_created", invite_hash, null, ip, userAgent, { boundIp: ip })
+      console.log("✅ IP binding created for invite:", invite_hash, "IP:", ip)
     }
 
-    // ✅ Generate session fingerprint
+    // Session fingerprint
     const timestamp = Date.now()
     const sessionFingerprint = createSessionFingerprint(ip, userAgent, inviteHash, timestamp)
 
-    // ✅ Session handling
+    // Create/resume session
+    let sessionId: string | null = null
     const existingSession = await getSessionByFingerprint(sessionFingerprint)
+
     if (existingSession) {
+      sessionId = existingSession.session_id
       await updateSessionLastSeen(sessionFingerprint)
-      await createAuditLog("session_resumed", inviteId, sessionFingerprint, ip, userAgent)
-      console.log("[v0] 🔄 Session resumed:", sessionFingerprint)
+      await createAuditLog("session_resumed", invite_hash, sessionId, ip, userAgent)
+      console.log("🔄 Session resumed:", sessionId)
     } else {
-      await createSession(inviteId, sessionFingerprint, ip, userAgent)
-      await createAuditLog("session_created", inviteId, sessionFingerprint, ip, userAgent)
-      console.log("[v0] 🆕 New session created:", sessionFingerprint)
+      const newSession = await createSession(invite_hash, sessionFingerprint, ip, userAgent)
+      sessionId = newSession.session_id
+      await createAuditLog("session_created", invite_hash, sessionId, ip, userAgent)
+      console.log("🆕 New session created:", sessionId)
     }
 
-    // ✅ Respond with cookie + redirect path
+    // Mark invite as used (idempotent)
+    const flipped = await markInviteUsed(invite.invite_hash)
+    if (flipped) {
+      await createAuditLog("invite_marked_used", invite.invite_hash, sessionFingerprint, ip, userAgent, {
+        email: invite.email,
+      })
+       console.log("[DEBUG] markInviteUsed called with:", invite.invite_hash)
+      
+    } else {
+      await createAuditLog("invite_already_used", invite.invite_hash, sessionFingerprint, ip, userAgent)
+      console.log("Error marking invite as 'Used'")
+    }
+
+    // Build response with cookie + redirect path
     const response = NextResponse.json({
       success: true,
       sessionFingerprint,
-      email: invite.email,
-      redirect: "/main", // 👈 critical for frontend router
+      sessionId,
+      redirect: "/main",
     })
 
     response.cookies.set("session_fingerprint", sessionFingerprint, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     })
 

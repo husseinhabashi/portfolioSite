@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS invites (
   is_active BOOLEAN DEFAULT true
 );
 
-CREATE TABLE visitors (
+CREATE TABLE IF NOT EXISTS visitors (
   id SERIAL PRIMARY KEY,
   ip VARCHAR(45) NOT NULL,
-  timestamp TIMESTAMPTZ DEFAULT NOW()
+  visited_at timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Sessions table: tracks all active sessions with fingerprints

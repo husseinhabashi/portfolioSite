@@ -44,7 +44,7 @@ async function setupDatabase() {
 
     // Invites table
     await sql`
-      CREATE TABLE invites (
+       TABLE invites (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
         invite_hash VARCHAR(64) NOT NULL UNIQUE,

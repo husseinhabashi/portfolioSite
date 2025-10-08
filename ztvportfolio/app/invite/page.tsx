@@ -17,43 +17,45 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  e.preventDefault()
+  setError("")
+  setLoading(true)
 
-    try {
-      // ✅ Verify invite on backend
-      const res = await fetch("/api/invites/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inviteHash, signature }),
-      })
+  try {
+    // 1️⃣ Verify invite
+    const verifyRes = await fetch("/api/invites/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteHash, signature }),
+    })
 
-      const text = await res.text()
-      console.log("📡 RAW RESPONSE:", text)
+    const verifyData = await verifyRes.json()
+    if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed")
 
-      let data
-      try {
-        data = JSON.parse(text)
-      } catch {
-        throw new Error("Server returned non-JSON response")
-      }
-      console.log("📡 Verification response:", data)
+    console.log("✅ Invite verified, now creating session...")
 
-      if (!res.ok) throw new Error(data.error || "Verification failed")
+    // 2️⃣ Create session BEFORE redirect
+    const sessionRes = await fetch("/api/session/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteHash, signature }),
+    })
 
-      // ✅ Redirect based on backend response
-      const redirectPath = data.redirect || "/main"
-      console.log("✅ Redirecting to:", redirectPath)
-      router.push(redirectPath)
+    const sessionData = await sessionRes.json()
+    if (!sessionRes.ok) throw new Error(sessionData.error || "Session creation failed")
 
-    } catch (err) {
-      console.error("❌ Verification error:", err)
-      setError(err instanceof Error ? err.message : "An unknown error occurred")
-    } finally {
-      setLoading(false)
-    }
+    console.log("✅ Session created, redirecting to:", sessionData.redirect)
+
+    // 3️⃣ Redirect to main
+    router.push(sessionData.redirect || "/main")
+
+  } catch (err) {
+    console.error("❌ Verification error:", err)
+    setError(err instanceof Error ? err.message : "An unknown error occurred")
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-green-400 font-mono p-4">
