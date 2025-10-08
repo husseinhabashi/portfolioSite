@@ -8,11 +8,17 @@ export default function MainPage() {
   const [ip, setIp] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/ip")
-      .then(res => res.json())
-      .then(data => setIp(data.ip))
-      .catch(() => setIp("Unknown"))
-  }, [])
+  fetch("/api/ip")
+    .then(res => res.json())
+    .then(data => {
+      console.log("📡 Real IP from API:", data.ip);
+      setIp(data.ip);
+    })
+    .catch(err => {
+      console.error("❌ Failed to fetch IP:", err);
+      setIp("Unknown");
+    });
+}, []);
 
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center text-center p-4">
