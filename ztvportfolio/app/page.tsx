@@ -33,26 +33,43 @@ export default function HomePage() {
 
       {/* Header */}
       <header className="border-b border-green-800">
-  <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <Shield className="h-6 w-6 text-green-400" />
-      <span className="font-bold text-xl">Zero Trust Vault</span>
+  <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+    {/* Logo + Title */}
+    <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
+      <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 shrink-0" />
+      <span className="font-bold text-lg sm:text-xl text-center sm:text-left">
+        Zero Trust Vault
+      </span>
     </div>
 
-    <nav className="flex items-center gap-4">
+    {/* Navigation */}
+    <nav className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
       <Link href="/security">
-        <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-green-400 hover:text-black hover:bg-green-400 w-full sm:w-auto"
+        >
           Security
         </Button>
       </Link>
 
       <Link href="/admin">
-        <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-green-400 hover:text-black hover:bg-green-400 w-full sm:w-auto"
+        >
           Admin
         </Button>
       </Link>
+
       <Link href="/invite">
-        <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-green-400 hover:text-black hover:bg-green-400 w-full sm:w-auto"
+        >
           Invite
         </Button>
       </Link>

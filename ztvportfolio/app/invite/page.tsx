@@ -45,24 +45,29 @@ export default function InvitePage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* ✅ Header identical to Admin pre-auth */}
-      <header className="border-b border-green-800">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-green-400 hover:text-black hover:bg-green-400"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Lock className="h-6 w-6 text-green-400" />
-            <span className="font-bold text-xl">Invite Verification</span>
-          </div>
-        </div>
-      </header>
+     <header className="border-b border-green-800">
+  <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+    {/* Back Button */}
+    <Link href="/" className="w-full sm:w-auto">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-2 w-full sm:w-auto justify-center sm:justify-start text-green-400 hover:text-black hover:bg-green-400"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Home
+      </Button>
+    </Link>
+
+    {/* Title Section */}
+    <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+      <Lock className="h-6 w-6 text-green-400 shrink-0" />
+      <span className="font-bold text-lg sm:text-xl text-center sm:text-right">
+        Invite Verification
+      </span>
+    </div>
+  </div>
+</header>
 
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-4">
