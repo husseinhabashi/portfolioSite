@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
       clientDetected: true,
     })
 
-    console.log("[v0] Security event logged:", eventType, "from", ip)
+    console.log("Security event logged:", eventType, "from", ip)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("[v0] Error logging security event:", error)
+    console.error("Error logging security event:", error)
     return NextResponse.json({ error: "Failed to log security event" }, { status: 500 })
   }
 }

@@ -53,3 +53,6 @@ postgres_data/
 admin-private-key.pem
 server-private-key.pem
 *.pem
+admin_signing.txt
+nonce.txt
+signature.bin

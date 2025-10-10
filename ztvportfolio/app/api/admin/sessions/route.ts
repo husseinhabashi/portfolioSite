@@ -1,16 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql } from "@/lib/db"
+import { getSql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
     // Check admin session
-    const adminSession = request.cookies.get("admin_session")?.value
+    const adminSession = request.cookies.get("session_fingerprint")?.value
 
     if (!adminSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Get all sessions with invite information
+    const sql = getSql()
     const sessions = await sql`
       SELECT 
         s.id,
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
       sessions,
     })
   } catch (error) {
-    console.error("[v0] Error fetching sessions:", error)
+    console.error("Error fetching sessions:", error)
     return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 })
   }
 }

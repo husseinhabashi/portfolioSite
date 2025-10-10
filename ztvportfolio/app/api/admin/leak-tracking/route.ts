@@ -1,23 +1,34 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql } from "@/lib/db"
+import { getSql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    // Check admin session
+    // 🔐 Check admin session
     const adminSession = request.cookies.get("admin_session")?.value
 
-    if (!adminSession) {
+    if (!adminSession || adminSession.trim().length === 0) {
+      console.warn("[leak-tracking] Missing or invalid admin_session cookie")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = Number.parseInt(searchParams.get("limit") || "100")
+    const limit = Math.min(Number(searchParams.get("limit")) || 100, 1000) // 🔒 prevent abuse
 
-    // Get leak tracking data with session information
+    const sql = getSql()
     const leaks = await sql`
       SELECT 
-        lt.*,
-        s.ip_address as session_ip,
+        lt.id,
+        lt.canary_token,
+        lt.session_id,
+        lt.resource_type,
+        lt.resource_path,
+        lt.accessed_at,
+        lt.access_ips,
+        lt.session_fingerprint,
+        lt.referer,
+        lt.signature,
+        lt.user_agent,
+        s.ip_address AS session_ip,
         i.email
       FROM leak_tracking lt
       LEFT JOIN sessions s ON lt.session_fingerprint = s.session_fingerprint
@@ -28,6 +39,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      total: leaks.length,
       leaks,
     })
   } catch (error) {

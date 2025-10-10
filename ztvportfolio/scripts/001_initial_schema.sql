@@ -53,12 +53,19 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- Leak tracking: tracks asset access with canary tokens
 CREATE TABLE IF NOT EXISTS leak_tracking (
   id SERIAL PRIMARY KEY,
-  session_fingerprint VARCHAR(64) NOT NULL,
-  asset_url TEXT NOT NULL,
-  signature VARCHAR(64) NOT NULL, -- Unique signature for this asset access
-  accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  ip_address VARCHAR(45),
-  user_agent TEXT
+  canary_token VARCHAR(64) NOT NULL UNIQUE,
+  session_id VARCHAR(64) NOT NULL,
+  resource_type VARCHAR(50) NOT NULL,
+  resource_path TEXT,
+  session_fingerprint TEXT,
+  referer TEXT,
+  signature TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  access_count INTEGER DEFAULT 0,
+  access_ips TEXT[],
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  accessed_at TIMESTAMP
 );
 
 -- Admin keys: stores public keys for admin signature verification

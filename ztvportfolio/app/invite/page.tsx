@@ -1,142 +1,138 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Cookies from "js-cookie"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, Lock, Key } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Shield, ArrowLeft, Lock } from "lucide-react"
 
 export default function InvitePage() {
-  const router = useRouter()
-  const [inviteHash, setInviteHash] = useState("")
+  const [email, setEmail] = useState("")
+  const [hash, setHash] = useState("")
   const [signature, setSignature] = useState("")
+  const [status, setStatus] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-   useEffect(() => {
-    Cookies.remove("session_fingerprint")
-    console.log("🧹 Session fingerprint cleared on invite page load")
-  }, [])
+  const handleVerifyInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setStatus("")
+    setLoading(true)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setError("")
-  setLoading(true)
+    try {
+      const response = await fetch("/api/invites/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, hash, signature }),
+      })
 
-  try {
-    // 1️⃣ Verify invite
-    const verifyRes = await fetch("/api/invites/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inviteHash, signature }),
-    })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Verification failed")
 
-    const verifyData = await verifyRes.json()
-    if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed")
-
-    console.log("✅ Invite verified, now creating session...")
-
-    // 2️⃣ Create session BEFORE redirect
-    const sessionRes = await fetch("/api/session/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inviteHash, signature }),
-    })
-
-    const sessionData = await sessionRes.json()
-    if (!sessionRes.ok) throw new Error(sessionData.error || "Session creation failed")
-
-    console.log("✅ Session created, redirecting to:", sessionData.redirect)
-
-    // 3️⃣ Redirect to main
-    router.push(sessionData.redirect || "/main")
-
-  } catch (err) {
-    console.error("❌ Verification error:", err)
-    setError(err instanceof Error ? err.message : "An unknown error occurred")
-  } finally {
-    setLoading(false)
+      setStatus("✅ Invite verified! Redirecting...")
+      setTimeout(() => (window.location.href = "/main"), 1000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verification failed")
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-green-400 font-mono p-4">
-      <Card className="w-full max-w-md border-green-700 bg-black text-green-400">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-green-900/20 rounded-full border border-green-700">
-              <Shield className="h-8 w-8 text-green-400" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">Secure Access Portal</CardTitle>
-          <CardDescription className="text-green-500">
-            Enter your cryptographically signed invite credentials
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Invite Hash Field */}
-            <div className="space-y-2">
-              <Label htmlFor="inviteHash" className="flex items-center gap-2 text-green-400">
-                <Key className="h-4 w-4" />
-                Invite Hash
-              </Label>
-              <Input
-                id="inviteHash"
-                type="text"
-                placeholder="SHA-256 invite hash"
-                value={inviteHash}
-                onChange={(e) => setInviteHash(e.target.value)}
-                required
-                className="font-mono text-sm border-green-700 bg-black text-green-400 placeholder-green-600 focus:border-green-400 focus:ring-green-400"
-              />
-            </div>
-
-            {/* Signature Field */}
-            <div className="space-y-2">
-              <Label htmlFor="signature" className="flex items-center gap-2 text-green-400">
-                <Lock className="h-4 w-4" />
-                Digital Signature
-              </Label>
-              <Input
-                id="signature"
-                type="text"
-                placeholder="ECDSA signature"
-                value={signature}
-                onChange={(e) => setSignature(e.target.value)}
-                required
-                className="font-mono text-sm border-green-700 bg-black text-green-400 placeholder-green-600 focus:border-green-400 focus:ring-green-400"
-              />
-            </div>
-
-            {/* Error Alert */}
-            {error && (
-              <Alert variant="destructive" className="border-red-700 bg-red-900/20 text-red-400">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Submit Button */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* ✅ Header identical to Admin pre-auth */}
+      <header className="border-b border-green-800">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/">
             <Button
-              type="submit"
-              className="w-full bg-green-500 text-black hover:bg-green-400 transition"
-              disabled={loading}
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-green-400 hover:text-black hover:bg-green-400"
             >
-              {loading ? "Verifying..." : "Verify & Enter"}
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
             </Button>
-          </form>
-
-          <div className="mt-6 text-center text-sm text-green-500">
-            <p>This portal uses cryptographic verification.</p>
-            <p className="mt-1">Access requires a valid signed invite key.</p>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Lock className="h-6 w-6 text-green-400" />
+            <span className="font-bold text-xl">Invite Verification</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Verify Your Invite</CardTitle>
+            <CardDescription>
+              Submit your invite hash and signature to access the portal
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleVerifyInvite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hash">Invite Hash</Label>
+                <Input
+                  id="hash"
+                  placeholder="Paste your invite hash"
+                  value={hash}
+                  onChange={(e) => setHash(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signature">Signature</Label>
+                <Input
+                  id="signature"
+                  placeholder="Paste your digital signature"
+                  value={signature}
+                  onChange={(e) => setSignature(e.target.value)}
+                  required
+                />
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {status && (
+                <Alert>
+                  <AlertDescription>{status}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Verifying..." : "Verify Invite"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

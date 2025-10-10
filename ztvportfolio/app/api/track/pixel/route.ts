@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Log the tracking pixel access
     await createLeakTrack(sessionFingerprint, referer, signature, ip, userAgent)
 
-    console.log("[v0] Tracking pixel accessed:", {
+    console.log("Tracking pixel accessed:", {
       signature: signature.substring(0, 16) + "...",
       ip,
       referer,
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("[v0] Error in tracking pixel:", error)
+    console.error("Error in tracking pixel:", error)
     return new NextResponse(null, { status: 500 })
   }
 }

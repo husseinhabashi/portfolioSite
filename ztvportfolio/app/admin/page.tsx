@@ -1,14 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Key, Activity, Users } from "lucide-react"
+import { Shield, Key, Activity, Users, ArrowLeft } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 
@@ -39,11 +39,9 @@ export default function AdminPage() {
   const [publicKey, setPublicKey] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-
   const [sessions, setSessions] = useState<Session[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
 
-  // Request challenge on mount
   useEffect(() => {
     requestChallenge()
   }, [])
@@ -52,11 +50,9 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/admin/challenge")
       const data = await response.json()
-
       if (data.success) {
         setChallenge(data.challenge)
-        console.log("[v0] Admin challenge received. Sign this nonce with your private key:")
-        console.log(data.challenge)
+        console.log("[v0] Admin challenge received:", data.challenge)
       }
     } catch (err) {
       console.error("[v0] Failed to request challenge:", err)
@@ -67,25 +63,19 @@ export default function AdminPage() {
     e.preventDefault()
     setError("")
     setLoading(true)
-
     try {
       const response = await fetch("/api/admin/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ challenge, signature, publicKey }),
       })
-
       const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Authentication failed")
-      }
-
+      if (!response.ok) throw new Error(data.error || "Authentication failed")
       setIsAuthenticated(true)
       loadAdminData()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed")
-      requestChallenge() // Get new challenge
+      requestChallenge()
     } finally {
       setLoading(false)
     }
@@ -93,98 +83,116 @@ export default function AdminPage() {
 
   const loadAdminData = async () => {
     try {
-      // Load sessions
       const sessionsRes = await fetch("/api/admin/sessions")
       const sessionsData = await sessionsRes.json()
-      if (sessionsData.success) {
-        setSessions(sessionsData.sessions)
-      }
-
-      // Load audit logs
+      if (sessionsData.success) setSessions(sessionsData.sessions)
       const logsRes = await fetch("/api/admin/audit-logs?limit=50")
       const logsData = await logsRes.json()
-      if (logsData.success) {
-        setAuditLogs(logsData.logs)
-      }
+      if (logsData.success) setAuditLogs(logsData.logs)
     } catch (err) {
       console.error("[v0] Failed to load admin data:", err)
     }
   }
 
+  // 🧱 --- Authentication Screen ---
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-primary/10 rounded-full">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* ✅ Header w/ Back Button */}
+        <header className="border-b border-green-800">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <Link href="/">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-green-400 hover:text-black hover:bg-green-400"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <Shield className="h-6 w-6 text-green-400" />
+              <span className="font-bold text-xl">Admin Authentication</span>
             </div>
-            <CardTitle className="text-2xl">Admin Authentication</CardTitle>
-            <CardDescription>Sign the challenge nonce with your private key</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAuthenticate} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="challenge">Challenge Nonce</Label>
-                <Textarea
-                  id="challenge"
-                  value={challenge}
-                  readOnly
-                  className="font-mono text-xs h-20"
-                  placeholder="Loading challenge..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Copy this nonce and sign it with your admin private key using ECDSA/SHA-256
-                </p>
-              </div>
+          </div>
+        </header>
 
-              <div className="space-y-2">
-                <Label htmlFor="signature">Signature</Label>
-                <Textarea
-                  id="signature"
-                  value={signature}
-                  onChange={(e) => setSignature(e.target.value)}
-                  className="font-mono text-xs h-24"
-                  placeholder="Paste your signature here (base64)"
-                  required
-                />
+        {/* Centered Auth Card */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl shadow-md">
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Shield className="h-8 w-8 text-primary" />
+                </div>
               </div>
+              <CardTitle className="text-2xl">Authenticate as Admin</CardTitle>
+              <CardDescription>Sign the challenge nonce with your private key</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAuthenticate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="challenge">Challenge Nonce</Label>
+                  <Textarea
+                    id="challenge"
+                    value={challenge}
+                    readOnly
+                    className="font-mono text-xs h-20"
+                    placeholder="Loading challenge..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Copy this nonce and sign it with your admin private key using ECDSA/SHA-256.
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="publicKey">Public Key</Label>
-                <Textarea
-                  id="publicKey"
-                  value={publicKey}
-                  onChange={(e) => setPublicKey(e.target.value)}
-                  className="font-mono text-xs h-32"
-                  placeholder="Paste your public key (PEM format)"
-                  required
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signature">Signature</Label>
+                  <Textarea
+                    id="signature"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    className="font-mono text-xs h-24"
+                    placeholder="Paste your signature here (base64)"
+                    required
+                  />
+                </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="publicKey">Public Key</Label>
+                  <Textarea
+                    id="publicKey"
+                    value={publicKey}
+                    onChange={(e) => setPublicKey(e.target.value)}
+                    className="font-mono text-xs h-32"
+                    placeholder="Paste your public key (PEM format)"
+                    required
+                  />
+                </div>
 
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading ? "Verifying..." : "Authenticate"}
-                </Button>
-                <Button type="button" variant="outline" onClick={requestChallenge}>
-                  New Challenge
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1" disabled={loading}>
+                    {loading ? "Verifying..." : "Authenticate"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={requestChallenge}>
+                    New Challenge
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
 
+  // 🧩 --- Authenticated Admin Panel (unchanged) ---
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -214,11 +222,12 @@ export default function AdminPage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Sessions */}
           <TabsContent value="sessions" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Active Sessions</CardTitle>
-                <CardDescription>All currently active user sessions with fingerprints</CardDescription>
+                <CardDescription>All currently active user sessions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -250,6 +259,7 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
+          {/* Audit */}
           <TabsContent value="audit" className="space-y-4">
             <Card>
               <CardHeader>
@@ -278,7 +288,9 @@ export default function AdminPage() {
                       )}
                     </div>
                   ))}
-                  {auditLogs.length === 0 && <p className="text-center text-muted-foreground py-8">No audit logs</p>}
+                  {auditLogs.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">No audit logs</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

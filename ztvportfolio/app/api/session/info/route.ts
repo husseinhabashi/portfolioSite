@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("[v0] Error getting session info:", error)
+    console.error("Error getting session info:", error)
     return NextResponse.json({ error: "Failed to get session info" }, { status: 500 })
   }
 }

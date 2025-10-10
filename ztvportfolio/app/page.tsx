@@ -33,25 +33,32 @@ export default function HomePage() {
 
       {/* Header */}
       <header className="border-b border-green-800">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-green-400" />
-            <span className="font-bold text-xl">Zero Trust Vault</span>
-          </div>
-          <nav className="flex items-center gap-4">
-            <Link href="/security">
-              <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
-                Security
-              </Button>
-            </Link>
-            <Link href="/admin">
-              <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
-                Admin
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+  <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <Shield className="h-6 w-6 text-green-400" />
+      <span className="font-bold text-xl">Zero Trust Vault</span>
+    </div>
+
+    <nav className="flex items-center gap-4">
+      <Link href="/security">
+        <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
+          Security
+        </Button>
+      </Link>
+
+      <Link href="/admin">
+        <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
+          Admin
+        </Button>
+      </Link>
+      <Link href="/invite">
+        <Button variant="ghost" size="sm" className="text-green-400 hover:text-black hover:bg-green-400">
+          Invite
+        </Button>
+      </Link>
+    </nav>
+  </div>
+</header>
 
       {/* Hero */}
       <section className="container mx-auto px-4 py-16 md:py-24 text-center space-y-6">

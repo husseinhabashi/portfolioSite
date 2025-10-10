@@ -104,14 +104,14 @@ export async function POST(request: NextRequest) {
     response.cookies.set("session_fingerprint", sessionFingerprint, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
     })
 
     return response
   } catch (error) {
-    console.error("[v0] ❌ Error creating session:", error)
+    console.error("❌ Error creating session:", error)
     return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
   }
 }
