@@ -149,3 +149,39 @@
     }
   }
 }
+
+/* === MOBILE OPTIMIZATION === */
+
+/* Make everything scale better on small screens */
+body {
+  overflow-x: hidden;
+  word-wrap: break-word;
+}
+
+/* Container padding for all pages */
+.container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Make big text wrap on smaller screens */
+h1, h2, h3 {
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+/* Adjust default font sizing for readability */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.75rem; /* ~text-3xl */
+  }
+  h2 {
+    font-size: 1.25rem;
+  }
+  h3 {
+    font-size: 1rem;
+  }
+  p, li, code {
+    font-size: 0.9rem;
+  }
+}
