@@ -20,7 +20,7 @@ export async function GET() {
       }
     }
 
-    console.log("[v0] Admin challenge generated:", nonce.substring(0, 16) + "...")
+    console.log("Admin challenge generated:", nonce.substring(0, 16) + "...")
 
     return NextResponse.json({
       success: true,
@@ -28,7 +28,7 @@ export async function GET() {
       expiresAt,
     })
   } catch (error) {
-    console.error("[v0] Error generating admin challenge:", error)
+    console.error("Error generating admin challenge:", error)
     return NextResponse.json({ error: "Failed to generate challenge" }, { status: 500 })
   }
 }

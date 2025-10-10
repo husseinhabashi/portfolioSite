@@ -27,7 +27,10 @@ export default function InvitePage() {
       const response = await fetch("/api/invites/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, hash, signature }),
+        body: JSON.stringify({ 
+          email, 
+          inviteHash: hash, 
+          signature }),
       })
 
       const data = await response.json()
