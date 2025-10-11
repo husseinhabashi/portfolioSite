@@ -31,23 +31,20 @@ export default function MainPage() {
   const [moveIPToHeader, setMoveIPToHeader] = useState(false)
   const [showHeader, setShowHeader] = useState(false)
 
-  // 🕹️ Master cinematic control
+  // 🎚 Master cinematic control
   const TIMING = {
-    // Shield transitions
     fadeIn: 2000,          // shield fade-in duration
     fadeOut: 2000,         // shield fade-out duration
-    fadeOutStart: 1000,    // when to start fading the shield (before header)
-    dimStart: 100,         // when to dim after IP starts printing
-    dimDuration: 800,      // CSS transition speed for dim
+    fadeOutStart: 1000,    // start fading before header
+    dimStart: 100,         // when to dim
+    dimDuration: 800,      // dim transition
     brightenStart: 1500 as number | null, // when to brighten again
 
-    // IP flow
-    ipPrintDelay: 1000,    // delay after prefix finishes before IP shows
-    ipMoveDelay: 2000,     // time IP stays centered
-    headerDelay: 3000,     // delay before IP moves into header
+    ipPrintDelay: 1000,    // wait before IP prints
+    ipMoveDelay: 2000,     // dwell centered
+    headerDelay: 3000,     // delay before header fade-in
 
-    // Global switch
-    disableDim: false,     // true → disables dim/bright transitions
+    disableDim: false,     // disable dim/bright cycle
   }
 
   // 🧭 Timeout manager
@@ -119,8 +116,8 @@ export default function MainPage() {
 
   // 💬 Terminal intro lines
   const lines = [
-    { text: "Welcome to the Zero Trust Vault", className: "text-sm sm:text-base text-green-400" },
-    { text: "All actions are being monitored.", className: "text-sm sm:text-base text-green-400" },
+    { text: "Welcome to the Zero Trust Vault", className: "text-xs sm:text-base text-green-400" },
+    { text: "All actions are being monitored.", className: "text-xs sm:text-base text-green-400" },
   ]
 
   // 🎬 Terminal sequence flow
@@ -136,52 +133,51 @@ export default function MainPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center text-center px-4 overflow-hidden">
+    <div className="relative min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center text-center px-3 sm:px-4 overflow-hidden">
 
       {/* 🛡️ Shield */}
       <div
-  className={`
-    fixed top-[17%] left-1/2 -translate-x-1/2 transition-all ease-in-out
-    ${shieldVisible ? "opacity-100" : "opacity-0"}
-    ${showHeader ? "scale-100" : "scale-100"}  /* keep scale constant to avoid resize */
-    ${shieldBrightness === "bright"
-      ? "brightness-bright"
-      : shieldBrightness === "dim"
-      ? "brightness-dim"
-      : "brightness-normal"}
-  `}
-  style={{
-    transitionProperty: "opacity, filter",
-    transitionDuration: `${shieldVisible ? TIMING.fadeIn : TIMING.fadeOut}ms`,
-    transitionTimingFunction: "ease-in-out",
-  }}
->
-  <Shield className="h-20 w-20 sm:h-24 sm:w-24 text-green-400 drop-shadow-[0_0_25px_rgba(0,255,0,0.6)]" />
-</div>
+        className={`
+          fixed top-[15%] sm:top-[17%] left-1/2 -translate-x-1/2 transition-all ease-in-out
+          ${shieldVisible ? "opacity-100" : "opacity-0"}
+          ${shieldBrightness === "bright"
+            ? "brightness-bright"
+            : shieldBrightness === "dim"
+            ? "brightness-dim"
+            : "brightness-normal"}
+        `}
+        style={{
+          transitionProperty: "opacity, filter",
+          transitionDuration: `${shieldVisible ? TIMING.fadeIn : TIMING.fadeOut}ms`,
+          transitionTimingFunction: "ease-in-out",
+        }}
+      >
+        <Shield className="h-16 w-16 sm:h-24 sm:w-24 text-green-400 drop-shadow-[0_0_25px_rgba(0,255,0,0.6)]" />
+      </div>
 
       {/* 💻 Terminal intro */}
       {!showIP && shieldFullyVisible && (
         <div
-          className={`flex flex-col items-center justify-center w-full max-w-2xl transition-opacity duration-1000 ${
+          className={`flex flex-col items-center justify-center w-full max-w-[90vw] sm:max-w-2xl transition-opacity duration-1000 ${
             fadeOut ? "opacity-0" : "opacity-100"
           }`}
         >
           <TerminalScene
             lines={lines}
             lineDelay={700}
-            lineHeight={36}
+            lineHeight={30}
             speed={90}
             fadeNonPinned
             fadeDelay={2200}
             onDone={handleSceneDone}
-            lineGapClass="gap-3"
+            lineGapClass="gap-2 sm:gap-3"
           />
 
           {showVigilant && (
-            <div className="text-sm sm:text-base text-green-400 mt-1">
+            <div className="text-xs sm:text-base text-green-400 mt-2 sm:mt-1">
               <Typewriter text="Stay vigilant..." speed={90} cursor={!showTrust} />
               {showTrust && (
-                <span className="text-red-500 ml-2">
+                <span className="text-red-500 ml-1 sm:ml-2">
                   <Typewriter text="Trust no one." speed={90} cursor />
                 </span>
               )}
@@ -194,7 +190,7 @@ export default function MainPage() {
       {showIP && ip && (
         <div
           className={[
-            "absolute text-sm sm:text-base font-mono flex items-center justify-center transition-all duration-1000 ease-in-out",
+            "absolute text-xs sm:text-base font-mono flex items-center justify-center transition-all duration-1000 ease-in-out text-center break-words max-w-[90vw]",
             moveIPToHeader
               ? "top-[-0.1rem] left-39/100 -translate-x-1/2 translate-y-0"
               : moveIPToCenter
@@ -219,7 +215,7 @@ export default function MainPage() {
 
           {/* IP address reveal */}
           {showIPAddress && (
-            <span className="text-green-500 font-semibold ml-1" id="ip-address">
+            <span className="text-green-500 font-semibold ml-1 truncate max-w-[70vw] sm:max-w-none" id="ip-address">
               <Typewriter
                 text={ip}
                 speed={50}
@@ -234,7 +230,7 @@ export default function MainPage() {
                     // ⚡ Shield fade-out before header fade-in
                     schedule(TIMING.fadeOutStart, () => {
                       setShieldBrightness("normal")
-                      setShieldVisible(false) // fades out using TIMING.fadeOut
+                      setShieldVisible(false)
                     })
 
                     // Header reveal after shield gone
@@ -256,7 +252,7 @@ export default function MainPage() {
 
       {/* 🔒 Lock icon */}
       <div
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 transition-opacity duration-1000 ${
+        className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 transition-opacity duration-1000 ${
           showHeader ? "opacity-0" : "opacity-30"
         }`}
       >
@@ -266,7 +262,7 @@ export default function MainPage() {
       {/* ✅ Header */}
       {showHeader && (
         <header className="fixed top-0 left-0 w-full border-b border-green-800 bg-black/80 backdrop-blur-md z-50 animate-fade-in">
-          <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
             <Link href="/" className="w-full sm:w-auto">
               <Button
                 variant="ghost"
@@ -279,8 +275,8 @@ export default function MainPage() {
             </Link>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
-              <Shield className="h-6 w-6 text-green-400 shrink-0" />
-              <span className="font-bold text-lg sm:text-xl text-center sm:text-right text-green-400 tracking-wide">
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 shrink-0" />
+              <span className="font-bold text-base sm:text-lg text-center sm:text-right text-green-400 tracking-wide">
                 Main Page
               </span>
             </div>
