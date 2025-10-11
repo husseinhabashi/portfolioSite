@@ -69,7 +69,7 @@ export default function ExperiencePage() {
               transition={{ delay: idx * 0.08 }}
               className="relative mb-8"
             >
-              <div className="absolute -left-[9px] top-1 h-3 w-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(0,255,0,0.6)]" />
+              <div className="absolute -left-[18px] top-1 h-3 w-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(0,255,0,0.6)]" />
               <h2 className="text-sm sm:text-base font-semibold">{r.title}</h2>
               <div className="text-[11px] sm:text-xs text-green-300/80">
                 {r.company} • {r.period}
