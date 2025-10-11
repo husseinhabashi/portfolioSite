@@ -93,11 +93,11 @@ export default function HomePage() {
 
         <p className="text-red-500 text-lg font-bold animate-pulse flex flex-col items-center justify-center gap-2 mt-4">
           <span className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" /> ⚠️ Your IP is being tracked...
+            <AlertTriangle className="h-5 w-5" /> Your IP is being tracked...
           </span>
           {ip && (
             <span className="text-green-300 text-sm">
-              📡 Your current IP: <span className="font-bold">{ip}</span>
+              Your current IP: <span className="font-bold">{ip}</span>
             </span>
           )}
         </p>

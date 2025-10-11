@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createSessionFingerprint, verifySignature } from "@/lib/crypto"
+import { signData, verifySignature } from "@/lib/crypto"
 import {
   getInviteByHash,
   createSession,
@@ -10,98 +10,91 @@ import {
   updateSessionLastSeen,
   markInviteUsed,
 } from "@/lib/db"
-import { getServerPublicKey } from "@/lib/env"
+import { getServerPrivateKey, getServerPublicKey } from "@/lib/env"
 
 export async function POST(request: NextRequest) {
   try {
-    const { inviteHash, signature } = await request.json()
+    const { inviteHash, fingerprint, signature } = await request.json()
 
-    // Client info (safe default on localhost)
+    if (!inviteHash || !fingerprint || !signature) {
+      return NextResponse.json(
+        { error: "Missing inviteHash, fingerprint, or signature" },
+        { status: 400 }
+      )
+    }
+
+    // 🔎 Collect environment info
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "127.0.0.1"
     const userAgent = request.headers.get("user-agent") || "unknown"
 
-    // Verify signature
+    // 🧠 1️⃣ Verify that the client fingerprint was signed by the server (authentic invite)
     const publicKey = getServerPublicKey()
-    const isValidSignature = verifySignature(inviteHash, signature, publicKey)
-    if (!isValidSignature) {
-      await createAuditLog("session_creation_failed", null, null, ip, userAgent, { reason: "Invalid signature" })
+    const isValid = verifySignature(fingerprint, signature, publicKey)
+
+    if (!isValid) {
+      await createAuditLog("session_creation_failed", inviteHash, null, ip, userAgent, {
+        reason: "Invalid signed fingerprint (forged client signature)",
+      })
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }
 
-    // Load invite
+    // 📨 2️⃣ Load invite from DB
     const invite = await getInviteByHash(inviteHash)
     if (!invite) {
-      await createAuditLog("session_creation_failed", null, null, ip, userAgent, { reason: "Invite not found" })
+      await createAuditLog("session_creation_failed", null, null, ip, userAgent, {
+        reason: "Invite not found",
+      })
       return NextResponse.json({ error: "Invite not found" }, { status: 404 })
     }
 
-    // If your DB funcs want a string id, keep this
-    const invite_hash = invite.invite_hash
-
-    // IP binding logic
-    const existingBinding = await getIpBinding(invite_hash)
-    if (existingBinding) {
-      if (existingBinding.bound_ip !== ip) {
-        await createAuditLog("ip_mismatch", invite_hash, null, ip, userAgent, {
-          boundIp: existingBinding.bound_ip,
-          requestIp: ip,
-        })
-        return NextResponse.json(
-          { error: "IP mismatch. Invite is bound to a different IP." },
-          { status: 403 }
-        )
-      }
-    } else {
-      await createIpBinding(invite_hash, ip)
-      await createAuditLog("ip_binding_created", invite_hash, null, ip, userAgent, { boundIp: ip })
-      console.log("✅ IP binding created for invite:", invite_hash, "IP:", ip)
+    // 🕒 3️⃣ Check IP binding
+    const existingBinding = await getIpBinding(inviteHash)
+    if (existingBinding && existingBinding.bound_ip !== ip) {
+      await createAuditLog("ip_mismatch", inviteHash, null, ip, userAgent, {
+        boundIp: existingBinding.bound_ip,
+        requestIp: ip,
+      })
+      return NextResponse.json({ error: "IP mismatch" }, { status: 403 })
     }
 
-    // Session fingerprint
-    const timestamp = Date.now()
-    const sessionFingerprint = createSessionFingerprint(ip, userAgent, inviteHash, timestamp)
+    if (!existingBinding) {
+      await createIpBinding(inviteHash, ip)
+      await createAuditLog("ip_binding_created", inviteHash, null, ip, userAgent, { boundIp: ip })
+    }
 
-    // Create/resume session
-    let sessionId: string | null = null
-    const existingSession = await getSessionByFingerprint(sessionFingerprint)
+    // 🧾 4️⃣ Check if this fingerprint already has a session
+    const existingSession = await getSessionByFingerprint(fingerprint)
+    let sessionId: string
 
     if (existingSession) {
       sessionId = existingSession.session_id
-      await updateSessionLastSeen(sessionFingerprint)
-      await createAuditLog("session_resumed", invite_hash, sessionId, ip, userAgent)
-      console.log("🔄 Session resumed:", sessionId)
+      await updateSessionLastSeen(fingerprint)
+      await createAuditLog("session_resumed", inviteHash, sessionId, ip, userAgent)
     } else {
-      const newSession = await createSession(invite_hash, sessionFingerprint, ip, userAgent)
+      const newSession = await createSession(inviteHash, fingerprint, ip, userAgent)
       sessionId = newSession.session_id
-      await createAuditLog("session_created", invite_hash, sessionId, ip, userAgent)
-      console.log("🆕 New session created:", sessionId)
+      await createAuditLog("session_created", inviteHash, sessionId, ip, userAgent)
+      await markInviteUsed(inviteHash)
     }
 
-    // Mark invite as used (idempotent)
-    const flipped = await markInviteUsed(invite.invite_hash)
-    if (flipped) {
-      await createAuditLog("invite_marked_used", invite.invite_hash, sessionFingerprint, ip, userAgent, {
-        email: invite.email,
-      })
-       console.log("[DEBUG] markInviteUsed called with:", invite.invite_hash)
-      
-    } else {
-      await createAuditLog("invite_already_used", invite.invite_hash, sessionFingerprint, ip, userAgent)
-      console.log("Error marking invite as 'Used'")
-    }
+    // ✍️ 5️⃣ Server re-signs fingerprint to create a durable session signature
+    const privateKey = getServerPrivateKey()
+    const signedFingerprint = signData(fingerprint, privateKey)
 
-    // Build response with cookie + redirect path
+    // ✅ 6️⃣ Respond with signed session data
     const response = NextResponse.json({
       success: true,
-      sessionFingerprint,
       sessionId,
+      sessionFingerprint: fingerprint,
+      signedSession: signedFingerprint,
       redirect: "/main",
     })
 
-    response.cookies.set("session_fingerprint", sessionFingerprint, {
+    // Optional: minimal session cookie
+    response.cookies.set("session_fingerprint", fingerprint, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
