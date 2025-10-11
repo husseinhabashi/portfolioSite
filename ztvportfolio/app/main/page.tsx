@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, Lock } from "lucide-react"
 import { Typewriter } from "@/components/ui/typewriter"
+import DashboardGrid from "./components/DashboardGrid"
+import AIAssistant from "./components/AIAssistant"
+import { motion } from "framer-motion"
+import { useSearchParams } from "next/navigation"
 
 export default function MainPage() {
   const router = useRouter()
@@ -24,6 +28,10 @@ export default function MainPage() {
   const [moveIPToCenter, setMoveIPToCenter] = useState(false)
   const [moveIPToHeader, setMoveIPToHeader] = useState(false)
   const [showHeader, setShowHeader] = useState(false)
+  const [showDashboard, setShowDashboard] = useState(false)
+  const [showAI, setShowAI] = useState(false)
+  const searchParams = useSearchParams()
+  const fastload = searchParams.get("fastload") === "true"
 
   // Terminal sequencing helpers
   const [showLine2, setShowLine2] = useState(false)
@@ -78,6 +86,28 @@ export default function MainPage() {
       timeouts.current.push(id)
     }
   }
+
+ useEffect(() => {
+  if (fastload) {
+    // 🧹 Prevent cinematic states from showing at all
+    setShieldVisible(false)
+    setShieldFullyVisible(false)
+    setFadeOut(true)
+    setShowIP(false)
+    setShowHeader(true)
+    setShowDashboard(true)
+    setShowAI(true)
+  }
+}, [fastload])
+
+useEffect(() => {
+  if (fastload) {
+    // Hide ?fastload=true from the URL after it's processed
+    const cleanUrl = window.location.origin + window.location.pathname
+    window.history.replaceState({}, document.title, cleanUrl)
+  }
+}, [fastload])
+
   useEffect(() => {
     return () => {
       timeouts.current.forEach(clearTimeout)
@@ -157,7 +187,7 @@ export default function MainPage() {
       </div>
 
       {/* 💻 Terminal intro (fixed widths; no jump; cinematic pacing) */}
-      {!showIP && shieldFullyVisible && (
+      {!fastload && shieldFullyVisible && !showDashboard && !showHeader && (
         <div
           className={`relative flex flex-col items-center justify-center w-full max-w-[90vw] sm:max-w-2xl transition-opacity duration-1000 ${
             fadeOut ? "opacity-0" : "opacity-100"
@@ -331,7 +361,11 @@ export default function MainPage() {
 
         setTimeout(() => {
           setShowHeader(true)
-          setTimeout(() => setMoveIPToHeader(true), TIMING.headerDelay)
+          setTimeout(() => {
+  setMoveIPToHeader(true)
+  // 🕒 Delay dashboard appearance after IP locks into header
+  setTimeout(() => setShowDashboard(true), 1000)
+}, TIMING.headerDelay)
         }, TIMING.fadeOut)
       }, TIMING.pulseDuration)
     }, TIMING.pulseDelay)
@@ -382,7 +416,11 @@ export default function MainPage() {
                             setShieldVisible(false)
                             setTimeout(() => {
                               setShowHeader(true)
-                              setTimeout(() => setMoveIPToHeader(true), TIMING.headerDelay)
+                              setTimeout(() => {
+  setMoveIPToHeader(true)
+  // 🕒 Delay dashboard appearance after IP locks into header
+  setTimeout(() => setShowDashboard(true), 1000)
+}, TIMING.headerDelay)
                             }, TIMING.fadeOut)
                           }, TIMING.pulseDuration)
                         }, TIMING.pulseDelay)
@@ -470,6 +508,60 @@ export default function MainPage() {
           </div>
         </header>
       )}
+{/* 🎬 Cinematic Intro (only runs if NOT fastload) */}
+{!fastload && !showIP && shieldFullyVisible && (
+  <div
+    className={`relative flex flex-col items-center justify-center w-full max-w-[90vw] sm:max-w-2xl transition-opacity duration-1000 ${
+      fadeOut ? "opacity-0" : "opacity-100"
+    }`}
+    style={{ zIndex: 10 }}
+  >
+    {/* ... your cinematic terminal text (Welcome / All actions / Stay vigilant...) */}
+  </div>
+)}
+
+{/* 🧩 Dashboard Section (always runs when showDashboard = true) */}
+{showDashboard && (
+  <div className="relative flex flex-col items-center justify-center w-full pt-24 pb-16 px-6">
+    <DashboardGrid
+      onComplete={() => {
+        // Wait 1 second after grid finishes, then show Nova
+        setTimeout(() => setShowAI(true), 1000)
+      }}
+    />
+
+    {/* 🧠 Nova AI Assistant — bottom-right entrance */}
+    {showAI && (
+      <motion.div
+        initial={{
+          opacity: 0,
+          scale: 0.8,
+          y: 30,
+          x: 30,
+          filter: "blur(8px)",
+        }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          x: 0,
+          filter: "blur(0px)",
+        }}
+        transition={{
+          duration: 1, // faster, smoother
+          ease: "easeOut",
+        }}
+        className="fixed bottom-6 right-6 z-50"
+        style={{
+          boxShadow: "none", // removes glow
+          filter: "none",    // removes light haze
+        }}
+      >
+        <AIAssistant />
+      </motion.div>
+    )}
+  </div>
+)}
     </div>
   )
 }
