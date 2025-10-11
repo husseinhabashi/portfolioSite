@@ -117,7 +117,7 @@ export default function MainPage() {
   // 💬 Terminal intro lines
   const lines = [
     { text: "Welcome to the Zero Trust Vault", className: "text-xs sm:text-base text-green-400" },
-    { text: "All actions are being monitored.", className: "text-xs sm:text-base text-green-400" },
+    { text: "All actions are being monitored", className: "text-xs sm:text-base text-green-400" },
   ]
 
   // 🎬 Terminal sequence flow
@@ -128,7 +128,7 @@ export default function MainPage() {
       setTimeout(() => {
         setFadeOut(true)
         setTimeout(() => setShowIP(true), 1500)
-      }, 5000)
+      }, 3500)
     }, 2500)
   }
 
@@ -178,7 +178,7 @@ export default function MainPage() {
               <Typewriter text="Stay vigilant..." speed={90} cursor={!showTrust} />
               {showTrust && (
                 <span className="text-red-500 ml-1 sm:ml-2">
-                  <Typewriter text="Trust no one." speed={90} cursor />
+                  <Typewriter text="Trust no one" speed={90} cursor />
                 </span>
               )}
             </div>
@@ -186,69 +186,115 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 🌐 IP cinematic sequence */}
-      {showIP && ip && (
-        <div
-          className={[
-            "absolute text-xs sm:text-base font-mono flex items-center justify-center transition-all duration-1000 ease-in-out text-center break-words max-w-[90vw]",
-            moveIPToHeader
-              ? "top-[-0.1rem] left-39/100 -translate-x-1/2 translate-y-0"
-              : moveIPToCenter
-              ? "top-1/2 left-39/100 -translate-x-1/2 -translate-y-1/2"
-              : "top-[60%] left-1/2 -translate-x-1/2",
-          ].join(" ")}
-          style={{ zIndex: 60 }}
+ {/* 🌐 IP cinematic sequence */}
+{showIP && ip && (
+  <div
+    className={[
+      "absolute font-mono flex items-center justify-center transition-all duration-1000 ease-in-out text-center",
+      "text-xs sm:text-base px-2 sm:px-0 whitespace-nowrap",
+      moveIPToHeader
+        ? "top-[0.2rem] left-39/100 -translate-x-1/2 translate-y-0"
+        : moveIPToCenter
+        ? "top-1/2 left-39/100 -translate-x-1/2 -translate-y-1/2"
+        : "top-[60%] left-1/2 -translate-x-1/2",
+    ].join(" ")}
+    style={{
+      zIndex: 60,
+      maxWidth: "90vw",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    }}
+  >
+    {/* Prefix */}
+    <span
+      id="ip-line"
+      className={`text-green-400 transition-opacity duration-1000 ${
+        fadeIPLine ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      <Typewriter
+        text="Active session fingerprint linked to IP:"
+        speed={45}
+        onComplete={() => schedule(1000, () => setShowIPAddress(true))}
+      />
+    </span>
+
+    {/* IP address reveal */}
+    {showIPAddress && (
+      <span
+        className="text-green-500 font-semibold ml-1 overflow-hidden truncate"
+        id="ip-address"
+        style={{
+          display: "inline-block",
+          maxWidth: moveIPToHeader ? "35vw" : "65vw",
+          fontSize: "clamp(0.75rem, 2vw, 1rem)",
+          verticalAlign: "bottom",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <Typewriter
+          text={ip}
+          speed={50}
+          cursor={false}
+          onComplete={() => {
+            setFadeIPLine(true)
+
+            // Move to center
+            schedule(TIMING.ipPrintDelay, () => {
+              setMoveIPToCenter(true)
+
+              // Shield fade out before header
+              schedule(TIMING.fadeOutStart, () => {
+                setShieldBrightness("normal")
+                setShieldVisible(false)
+              })
+
+              // Header reveal after fade
+              schedule(TIMING.fadeOutStart + TIMING.fadeOut, () => {
+                setShowHeader(true)
+              })
+
+              // Move IP into header
+              schedule(TIMING.headerDelay, () => setMoveIPToHeader(true))
+            })
+          }}
+        />
+      </span>
+    )}
+  </div>
+)}
+
+{/* ✅ Header */}
+{showHeader && (
+  <header className="fixed top-0 left-0 w-full border-b border-green-800 bg-black/80 backdrop-blur-md z-50 animate-fade-in">
+    <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+      <Link href="/" className="w-full sm:w-auto">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 w-full sm:w-auto justify-center sm:justify-start text-green-400 hover:text-black hover:bg-green-400 transition-all"
         >
-          {/* Prefix */}
-          <span
-            id="ip-line"
-            className={`text-green-400 transition-opacity duration-1000 ${
-              fadeIPLine ? "opacity-0" : "opacity-100"
-            }`}
-          >
-            <Typewriter
-              text="Active session fingerprint linked to IP: "
-              speed={45}
-              onComplete={() => schedule(1000, () => setShowIPAddress(true))}
-            />
-          </span>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Button>
+      </Link>
 
-          {/* IP address reveal */}
-          {showIPAddress && (
-            <span className="text-green-500 font-semibold ml-1 truncate max-w-[70vw] sm:max-w-none" id="ip-address">
-              <Typewriter
-                text={ip}
-                speed={50}
-                cursor={false}
-                onComplete={() => {
-                  setFadeIPLine(true)
-
-                  // IP moves to center
-                  schedule(TIMING.ipPrintDelay, () => {
-                    setMoveIPToCenter(true)
-
-                    // ⚡ Shield fade-out before header fade-in
-                    schedule(TIMING.fadeOutStart, () => {
-                      setShieldBrightness("normal")
-                      setShieldVisible(false)
-                    })
-
-                    // Header reveal after shield gone
-                    schedule(TIMING.fadeOutStart + TIMING.fadeOut, () => {
-                      setShowHeader(true)
-                    })
-
-                    // Then IP moves to header
-                    schedule(TIMING.headerDelay, () => {
-                      setMoveIPToHeader(true)
-                    })
-                  })
-                }}
-              />
-            </span>
-          )}
-        </div>
-      )}
+      <div
+        className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center sm:justify-end overflow-hidden"
+        style={{ maxWidth: "85vw" }}
+      >
+        <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 shrink-0" />
+        <span
+          className="font-bold text-sm sm:text-lg text-green-400 tracking-wide truncate"
+          style={{ maxWidth: "50vw", textOverflow: "ellipsis" }}
+        >
+          Main Page
+        </span>
+      </div>
+    </div>
+  </header>
+)}
 
       {/* 🔒 Lock icon */}
       <div
