@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -12,13 +12,15 @@ import FadeLayer from "@/components/ui/FadeLayer"
 export default function MainPage() {
   const router = useRouter()
 
-  // 🔐 Zero-Trust verification state
+  // 🔐 Zero-Trust verification
   const [verified, setVerified] = useState(false)
 
-  // Cinematic animation states
+  // 🎞️ Cinematic states
   const [ip, setIp] = useState<string | null>(null)
   const [shieldVisible, setShieldVisible] = useState(false)
   const [shieldFullyVisible, setShieldFullyVisible] = useState(false)
+  const [shieldBrightness, setShieldBrightness] = useState<"normal" | "dim" | "bright">("normal")
+
   const [fadeOut, setFadeOut] = useState(false)
   const [showIP, setShowIP] = useState(false)
   const [showVigilant, setShowVigilant] = useState(false)
@@ -29,34 +31,46 @@ export default function MainPage() {
   const [moveIPToHeader, setMoveIPToHeader] = useState(false)
   const [showHeader, setShowHeader] = useState(false)
 
-  const [shieldBrightness, setShieldBrightness] = useState<"normal" | "dim" | "bright">("normal")
+  // 🕹️ Master cinematic control
+  const TIMING = {
+    // Shield transitions
+    fadeIn: 2000,          // shield fade-in duration
+    fadeOut: 2000,         // shield fade-out duration
+    fadeOutStart: 1000,    // when to start fading the shield (before header)
+    dimStart: 100,         // when to dim after IP starts printing
+    dimDuration: 800,      // CSS transition speed for dim
+    brightenStart: 1500 as number | null, // when to brighten again
 
+    // IP flow
+    ipPrintDelay: 1000,    // delay after prefix finishes before IP shows
+    ipMoveDelay: 2000,     // time IP stays centered
+    headerDelay: 3000,     // delay before IP moves into header
 
-  const SHIELD_FADE_DURATION = 2500
-
-  // 🎞️ Animation timings (tune these like a film editor)
-const TIMING = {
-  fadeIn: 2000,         // Shield fade-in duration
-  dimStart: 500,       // When dimming starts
-  dim: 500,            // How long the dim lasts
-  brightenStart: 1000, // When to brighten (after dim)
-  brighten: 1500,       // Brighten duration
-  fadeOut: 2500,        // Fade away before header appears
-  ipPrintDelay: 1000,   // Wait after IP prints before move
-  ipMoveDelay: 2000,    // How long IP travels before header
-  headerDelay: 3000,    // Delay before header fade-in
-  disableDim: false,    // Set true to fully disable dimming logic
-}
-
-useEffect(() => {
-  if (shieldBrightness === "dim" && TIMING.dim !== null) {
-    document.documentElement.style.setProperty("--shield-dim-duration", `${TIMING.dim}ms`)
-  } else {
-    document.documentElement.style.setProperty("--shield-dim-duration", "800ms") // default
+    // Global switch
+    disableDim: false,     // true → disables dim/bright transitions
   }
-}, [shieldBrightness])
 
-  // 🧠 Zero-Trust session verification
+  // 🧭 Timeout manager
+  const timeouts = useRef<number[]>([])
+  const schedule = (ms: number | null | undefined, fn: () => void) => {
+    if (typeof ms === "number" && ms >= 0) {
+      const id = window.setTimeout(fn, ms)
+      timeouts.current.push(id)
+    }
+  }
+  useEffect(() => {
+    return () => {
+      timeouts.current.forEach(clearTimeout)
+      timeouts.current = []
+    }
+  }, [])
+
+  // ⚙️ CSS transition variable
+  useEffect(() => {
+    document.documentElement.style.setProperty("--shield-dim-duration", `${TIMING.dimDuration}ms`)
+  }, [TIMING.dimDuration])
+
+  // 🧠 Session verification
   useEffect(() => {
     const fingerprint = sessionStorage.getItem("session_fingerprint")
     const signature = sessionStorage.getItem("session_signature")
@@ -67,10 +81,7 @@ useEffect(() => {
     }
 
     fetch("/api/main", {
-      headers: {
-        "x-session-fingerprint": fingerprint,
-        "x-signature": signature,
-      },
+      headers: { "x-session-fingerprint": fingerprint, "x-signature": signature },
     })
       .then(async (res) => {
         if (!res.ok) throw new Error("Access denied")
@@ -81,7 +92,7 @@ useEffect(() => {
       .catch(() => router.replace("/invite"))
   }, [router])
 
-  // 🕵️ Wait until verified before showing cinematic
+  // 🛡️ Shield initialization
   useEffect(() => {
     if (!verified) return
 
@@ -91,58 +102,64 @@ useEffect(() => {
       .catch(() => setIp("Unknown"))
       .finally(() => {
         setShieldVisible(true)
-        const timer = setTimeout(() => setShieldFullyVisible(true), SHIELD_FADE_DURATION)
-        return () => clearTimeout(timer)
+        schedule(TIMING.fadeIn, () => setShieldFullyVisible(true))
       })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verified])
 
-  if (!verified) return null // Don’t render anything until verified
+  // 💡 Dim/Bright control synced to IP appearance
+  useEffect(() => {
+    if (!showIPAddress || TIMING.disableDim) return
+    if (TIMING.dimStart !== null) schedule(TIMING.dimStart, () => setShieldBrightness("dim"))
+    if (TIMING.brightenStart !== null) schedule(TIMING.brightenStart, () => setShieldBrightness("bright"))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showIPAddress])
 
+  if (!verified) return null
+
+  // 💬 Terminal intro lines
   const lines = [
     { text: "Welcome to the Zero Trust Vault", className: "text-sm sm:text-base text-green-400" },
     { text: "All actions are being monitored.", className: "text-sm sm:text-base text-green-400" },
   ]
 
+  // 🎬 Terminal sequence flow
   const handleSceneDone = () => {
     setShowVigilant(true)
     setTimeout(() => {
       setShowTrust(true)
       setTimeout(() => {
         setFadeOut(true)
-        setTimeout(() => {
-          setShowIP(true)
-        }, 1500)
+        setTimeout(() => setShowIP(true), 1500)
       }, 5000)
     }, 2500)
   }
 
   return (
     <div className="relative min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-      {/* 🛡️ Shield fade-in animation */}
-    <div
+
+      {/* 🛡️ Shield */}
+      <div
   className={`
-    fixed top-[17%] left-1/2 -translate-x-1/2 ease-in-out
-    ${shieldVisible && !showHeader ? "opacity-100 scale-100" : "opacity-0 scale-90"}
-    ${
-      shieldBrightness === "bright" ? "brightness-150" :
-      shieldBrightness === "dim" ? "brightness-30" :
-      "brightness-100"
-    }
+    fixed top-[17%] left-1/2 -translate-x-1/2 transition-all ease-in-out
+    ${shieldVisible ? "opacity-100" : "opacity-0"}
+    ${showHeader ? "scale-100" : "scale-100"}  /* keep scale constant to avoid resize */
+    ${shieldBrightness === "bright"
+      ? "brightness-bright"
+      : shieldBrightness === "dim"
+      ? "brightness-dim"
+      : "brightness-normal"}
   `}
   style={{
-    transitionProperty: "opacity, transform, filter",
-    transitionDuration: shieldVisible ? `${TIMING.fadeIn}ms` : `${TIMING.fadeOut}ms`,
+    transitionProperty: "opacity, filter",
+    transitionDuration: `${shieldVisible ? TIMING.fadeIn : TIMING.fadeOut}ms`,
     transitionTimingFunction: "ease-in-out",
-    filter: `brightness(${
-      shieldBrightness === "bright" ? "1.5" :
-      shieldBrightness === "dim" ? "0.3" :
-      "1"
-    })`,
   }}
 >
   <Shield className="h-20 w-20 sm:h-24 sm:w-24 text-green-400 drop-shadow-[0_0_25px_rgba(0,255,0,0.6)]" />
 </div>
-      {/* 💻 Terminal sequence */}
+
+      {/* 💻 Terminal intro */}
       {!showIP && shieldFullyVisible && (
         <div
           className={`flex flex-col items-center justify-center w-full max-w-2xl transition-opacity duration-1000 ${
@@ -160,7 +177,6 @@ useEffect(() => {
             lineGapClass="gap-3"
           />
 
-          {/* 🧠 Stay vigilant... Trust no one */}
           {showVigilant && (
             <div className="text-sm sm:text-base text-green-400 mt-1">
               <Typewriter text="Stay vigilant..." speed={90} cursor={!showTrust} />
@@ -173,11 +189,6 @@ useEffect(() => {
           )}
         </div>
       )}
-
-      {/* 🌓 Fade overlay for transition */}
-      <FadeLayer visible={showIP} duration={1000}>
-        <div className="fixed inset-0 bg-black opacity-80" />
-      </FadeLayer>
 
       {/* 🌐 IP cinematic sequence */}
       {showIP && ip && (
@@ -192,6 +203,7 @@ useEffect(() => {
           ].join(" ")}
           style={{ zIndex: 60 }}
         >
+          {/* Prefix */}
           <span
             id="ip-line"
             className={`text-green-400 transition-opacity duration-1000 ${
@@ -201,44 +213,41 @@ useEffect(() => {
             <Typewriter
               text="Active session fingerprint linked to IP: "
               speed={45}
-              onComplete={() => {
-                setTimeout(() => setShowIPAddress(true), 1000)}
-              }
+              onComplete={() => schedule(1000, () => setShowIPAddress(true))}
             />
           </span>
 
+          {/* IP address reveal */}
           {showIPAddress && (
             <span className="text-green-500 font-semibold ml-1" id="ip-address">
               <Typewriter
                 text={ip}
                 speed={50}
                 cursor={false}
-               onComplete={() => {
-  // 🎬 Step 1 — Dim when IP starts printing
-  setShieldBrightness("dim")
-  setFadeIPLine(true)
-  
-  setTimeout(() => {
-    setMoveIPToCenter(true)
+                onComplete={() => {
+                  setFadeIPLine(true)
 
-    // 💡 Step 2 — Brighten when IP starts moving (after dim duration)
-    setTimeout(() => {
-      setShieldBrightness("bright")
-    }, TIMING.dim)
+                  // IP moves to center
+                  schedule(TIMING.ipPrintDelay, () => {
+                    setMoveIPToCenter(true)
 
-    setTimeout(() => {
-      // ☠️ Step 3 — Fade out shield before header
-      setShieldBrightness("normal")
-      setShieldVisible(false)
-      setShowHeader(true)
+                    // ⚡ Shield fade-out before header fade-in
+                    schedule(TIMING.fadeOutStart, () => {
+                      setShieldBrightness("normal")
+                      setShieldVisible(false) // fades out using TIMING.fadeOut
+                    })
 
-      setTimeout(() => {
-        // 🧭 Step 4 — Move IP to header position
-        setMoveIPToHeader(true)
-      }, TIMING.headerDelay)
-    }, TIMING.ipMoveDelay + TIMING.dim)
-  }, TIMING.ipPrintDelay)
-}}
+                    // Header reveal after shield gone
+                    schedule(TIMING.fadeOutStart + TIMING.fadeOut, () => {
+                      setShowHeader(true)
+                    })
+
+                    // Then IP moves to header
+                    schedule(TIMING.headerDelay, () => {
+                      setMoveIPToHeader(true)
+                    })
+                  })
+                }}
               />
             </span>
           )}
