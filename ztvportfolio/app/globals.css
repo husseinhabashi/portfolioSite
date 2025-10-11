@@ -40,6 +40,13 @@
   animation: glow 1.5s ease-in-out infinite;
 }
 
+.tty {
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+  white-space: pre;
+  display: inline-block;   /* so width: Nch works */
+  line-height: 1.1;        /* keeps cursor aligned nicely */
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
