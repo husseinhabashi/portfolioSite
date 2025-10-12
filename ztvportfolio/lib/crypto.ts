@@ -53,7 +53,7 @@ export function verifySignature(data: string, signature: string, publicKey: stri
  */
 export function generateKeyPair(): { publicKey: string; privateKey: string } {
   const { publicKey, privateKey } = generateKeyPairSync("ec", {
-    namedCurve: "secp256k1",
+    namedCurve: "prime256v1",
     publicKeyEncoding: {
       type: "spki",
       format: "pem",

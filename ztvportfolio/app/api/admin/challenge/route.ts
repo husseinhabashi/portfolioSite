@@ -1,37 +1,25 @@
 import { NextResponse } from "next/server"
 import { generateAdminChallenge } from "@/lib/crypto"
-
-// Store challenges in memory (in production, use Redis or database)
-const challenges = new Map<string, { nonce: string; expiresAt: number }>()
+import { setAdminChallenge, adminChallenges } from "@/lib/adminChallengeStore"
 
 export async function GET() {
   try {
-    // Generate challenge nonce
     const nonce = generateAdminChallenge()
-    const expiresAt = Date.now() + 5 * 60 * 1000 // 5 minutes
+    setAdminChallenge(nonce)
 
-    // Store challenge
-    challenges.set(nonce, { nonce, expiresAt })
-
-    // Clean up expired challenges
-    for (const [key, value] of challenges.entries()) {
-      if (value.expiresAt < Date.now()) {
-        challenges.delete(key)
-      }
+    // Clean expired entries
+    for (const [key, value] of adminChallenges.entries()) {
+      if (value.expiresAt < Date.now()) adminChallenges.delete(key)
     }
 
     console.log("Admin challenge generated:", nonce.substring(0, 16) + "...")
-
     return NextResponse.json({
       success: true,
       challenge: nonce,
-      expiresAt,
+      expiresAt: Date.now() + 5 * 60 * 1000,
     })
-  } catch (error) {
-    console.error("Error generating admin challenge:", error)
+  } catch (err) {
+    console.error("Error generating admin challenge:", err)
     return NextResponse.json({ error: "Failed to generate challenge" }, { status: 500 })
   }
 }
-
-// Export challenges map for verification
-export { challenges }
