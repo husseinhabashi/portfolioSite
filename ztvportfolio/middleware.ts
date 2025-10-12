@@ -74,8 +74,10 @@ export async function middleware(request: NextRequest) {
 // 🔒 Apply middleware only to sensitive areas
 export const config = {
   matcher: [
-    "/main",           // root protected page
-    "/main/:path*",    // sub-routes under /main
-    "/api/secure/:path*", // optional secured APIs if you want
+    "/main",            // root protected page
+    "/main/:path*",     // sub-routes under /main
+    "/api/secure/:path*", // optional secured APIs
+    "/api/admin/invite",
+    "/api/admin/ipbinding",  // secured admin endpoint
   ],
 }
