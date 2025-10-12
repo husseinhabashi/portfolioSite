@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server"
 import { generateAdminChallenge } from "@/lib/crypto"
-import { setAdminChallenge, adminChallenges } from "@/lib/adminChallengeStore"
+import { storeAdminChallenge } from "@/lib/db"
 
 export async function GET() {
   try {
     const nonce = generateAdminChallenge()
-    setAdminChallenge(nonce)
-
-    // Clean expired entries
-    for (const [key, value] of adminChallenges.entries()) {
-      if (value.expiresAt < Date.now()) adminChallenges.delete(key)
-    }
+    await storeAdminChallenge(nonce)
 
     console.log("Admin challenge generated:", nonce.substring(0, 16) + "...")
     return NextResponse.json({

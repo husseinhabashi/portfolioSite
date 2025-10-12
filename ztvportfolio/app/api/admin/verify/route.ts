@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
-import { getAdminChallenge, deleteAdminChallenge } from "@/lib/adminChallengeStore"
+import { getAdminChallenge, deleteAdminChallenge } from "@/lib/db"
 
 export async function POST(req: Request) {
   try {
@@ -9,8 +9,8 @@ export async function POST(req: Request) {
     if (!challenge || !signature || !publicKey)
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 })
 
-    const entry = getAdminChallenge(challenge)
-    if (!entry || entry.expiresAt < Date.now())
+    const entry = await getAdminChallenge(challenge)
+    if (!entry || new Date(entry.expires_at) < new Date())
       return NextResponse.json({ error: "Challenge expired or invalid" }, { status: 401 })
 
     const verifier = crypto.createVerify("SHA256")
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     if (!isValid)
       return NextResponse.json({ error: "Invalid signature" }, { status: 402 })
 
-    deleteAdminChallenge(challenge)
+    await deleteAdminChallenge(challenge)
     console.log("[verify] Admin verified successfully")
     return NextResponse.json({ success: true })
   } catch (err) {

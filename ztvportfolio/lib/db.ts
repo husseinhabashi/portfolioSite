@@ -134,6 +134,36 @@ export async function updateSessionLastSeen(fingerprint: string) {
 }
 
 // ──────────────────────────────────────────────
+// 🧠 ADMIN CHALLENGES (for serverless persistence)
+// ──────────────────────────────────────────────
+
+export async function storeAdminChallenge(nonce: string) {
+  const sql = getSql()
+  await sql`
+    INSERT INTO admin_challenges (nonce, expires_at)
+    VALUES (${nonce}, NOW() + interval '5 minutes')
+    ON CONFLICT (nonce) DO UPDATE
+    SET expires_at = NOW() + interval '5 minutes'
+  `
+}
+
+export async function getAdminChallenge(nonce: string) {
+  const sql = getSql()
+  const result = await sql`
+    SELECT nonce, expires_at
+    FROM admin_challenges
+    WHERE nonce = ${nonce}
+    LIMIT 1
+  `
+  return result[0] || null
+}
+
+export async function deleteAdminChallenge(nonce: string) {
+  const sql = getSql()
+  await sql`DELETE FROM admin_challenges WHERE nonce = ${nonce}`
+}
+
+// ──────────────────────────────────────────────
 // 📡 Leak Tracking
 // ──────────────────────────────────────────────
 export async function createLeakTrack(
