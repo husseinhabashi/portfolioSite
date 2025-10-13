@@ -1,64 +1,54 @@
-// /app/api/admin/invite/route.ts
-import { type NextRequest, NextResponse } from "next/server"
-import { createInviteHash, generateNonce, signData } from "@/lib/crypto"
-import { createInvite, createIpBinding } from "@/lib/db"
-import { getServerPrivateKey } from "@/lib/env"
+import { NextResponse } from "next/server"
+import { createInviteHash, signData } from "@/lib/crypto"
+import { createInvite } from "@/lib/db"
+import { randomBytes } from "crypto"
 
-
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { email, expiresInDays, bindIp } = await request.json()
+    const { email, expiresInDays, bindIp } = await req.json()
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Valid email is required" }, { status: 400 })
-    }
+    if (!email || !email.includes("@"))
+      return NextResponse.json({ error: "Invalid email" }, { status: 400 })
 
+    // 🧩 1. Core invite creation
     const timestamp = Date.now()
-    const nonce = generateNonce()
+    const nonce = randomBytes(16).toString("hex")
     const inviteHash = createInviteHash(email, timestamp, nonce)
 
-    // Sign invite hash with server private key
-    const privateKey = getServerPrivateKey()
+    const privateKey = process.env.SERVER_PRIVATE_KEY!
     const signature = signData(inviteHash, privateKey)
 
-    const expiresAt = expiresInDays
-      ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
-      : undefined
+    const expiresAt =
+  expiresInDays && expiresInDays > 0
+    ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+    : undefined
 
-    // Create invite
-    const invite = await createInvite(email, inviteHash, signature, expiresAt)
+    await createInvite(email, inviteHash, signature, expiresAt ?? undefined)
 
-    const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+    // 🧩 2. Create one-time token for recruiter
+    const token = randomBytes(16).toString("hex")
+    const sql = (await import("@/lib/db")).getSql()
+    await sql`
+      INSERT INTO invite_tokens (invite_hash, token, expires_at)
+      VALUES (${inviteHash}, ${token}, NOW() + interval '1 day')
+    `
 
+    const oneTimeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`
 
-    const oneTimeUrl = `${baseUrl}/invite?hash=${inviteHash}&sig=${encodeURIComponent(signature)}`
-
-
-    // Conditionally create IP binding
-    if (bindIp !== false) {
-      // Optional IP placeholder or automatic binding later
-      await createIpBinding(inviteHash, "0.0.0.0") // or handle binding later
-      console.log(`[invite] ✅ Created IP binding for ${email}`)
-    } else {
-      console.log(`[invite] ⚠️ Skipped IP binding for ${email}`)
-    }
-
-    console.log(`[invite] ✅ New invite created for ${email}`)
-
+    console.log(`[invite] ✅ New one-time invite for ${email}`)
     return NextResponse.json({
-  success: true,
-  invite: {
-    email: invite.email,
-    inviteHash: invite.invite_hash,
-    signature: invite.signature,
-    expiresAt: invite.expires_at,
-    oneTimeUrl, // 👈 the link your QR code will use
-  },
-})
+      success: true,
+      invite: {
+        email,
+        inviteHash,
+        signature,
+        oneTimeUrl,
+        expiresAt,
+        bindIp,
+      },
+    })
   } catch (err) {
-    console.error("[invite] ❌ Error generating invite:", err)
+    console.error("[invite] ❌ Error:", err)
     return NextResponse.json({ error: "Failed to generate invite" }, { status: 500 })
   }
 }
