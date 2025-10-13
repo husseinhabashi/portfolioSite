@@ -21,15 +21,15 @@ export default function InvitePage() {
   // 🔐 Generate reproducible Zero-Trust fingerprint
   useEffect(() => {
     const generateFingerprint = async () => {
-      const userAgent = navigator.userAgent
-      const language = navigator.language
-      const screenRes = `${window.screen.width}x${window.screen.height}`
-      const entropy = `${userAgent}|${language}|${screenRes}|${Date.now()}`
-      const data = new TextEncoder().encode(entropy)
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-      const hashArray = Array.from(new Uint8Array(hashBuffer))
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("")
-      setFingerprint(hashHex)
+      const ua = navigator.userAgent
+      const lang = navigator.language
+      const res = `${window.screen.width}x${window.screen.height}`
+      const entropy = `${ua}|${lang}|${res}`
+      const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(entropy))
+      const hex = Array.from(new Uint8Array(hash))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")
+      setFingerprint(hex)
     }
     generateFingerprint()
   }, [])
@@ -42,44 +42,70 @@ export default function InvitePage() {
     setLoading(true)
 
     try {
-      // 1️⃣ Verify invite with Zero Trust signature
+      // 1️⃣ Verify invite with Zero-Trust signature
       const verifyRes = await fetch("/api/invites/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, inviteHash, signature, fingerprint }),
       })
-
       const verifyData = await verifyRes.json()
       if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed")
 
-      // 2️⃣ Create a secure session on the backend
+      // 2️⃣ Create session on backend
       const createSessionRes = await fetch("/api/session/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inviteHash,
           fingerprint,
-          signature: verifyData.signedSession, // use server-signed signature
+          signature: verifyData.signedSession,
         }),
       })
-
       const createSessionData = await createSessionRes.json()
-      if (!createSessionRes.ok) throw new Error(createSessionData.error || "Session creation failed")
+      if (!createSessionRes.ok)
+        throw new Error(createSessionData.error || "Session creation failed")
 
-      // 3️⃣ Persist trust values locally (client-side session)
-      sessionStorage.setItem("session_fingerprint", createSessionData.sessionFingerprint)
-      sessionStorage.setItem("session_signature", verifyData.signedSession)
-      localStorage.setItem("headers:x-session-fingerprint", createSessionData.sessionFingerprint)
-      localStorage.setItem("headers:x-signature", verifyData.signedSession)
+      // 🧩 Extract correct values
+      const sessionFingerprint =
+        createSessionData.sessionFingerprint || createSessionData.sessionId || fingerprint
+      const sessionSignature = verifyData.signedSession || signature
 
-      console.log("✅ Zero Trust session established:", {
-        fingerprint: createSessionData.sessionFingerprint,
-        signature: verifyData.signedSession || signature,
+      // 3️⃣ Persist Zero-Trust headers
+      sessionStorage.setItem("session_fingerprint", sessionFingerprint)
+      sessionStorage.setItem("session_signature", sessionSignature)
+      localStorage.setItem("headers:x-session-fingerprint", sessionFingerprint)
+      localStorage.setItem("headers:x-signature", sessionSignature)
+
+      console.log("✅ Zero-Trust session established:", {
+        fingerprint: sessionFingerprint,
+        signature: sessionSignature,
       })
 
-      // 4️⃣ Redirect
-      setStatus("Invite verified! Redirecting securely...")
-      setTimeout(() => (window.location.href = "/main"), 1000)
+// 4️⃣ Redirect securely
+setStatus("Invite verified ✅ Redirecting securely...")
+
+setTimeout(async () => {
+  const fingerprint = sessionStorage.getItem("session_fingerprint")
+  const signature = sessionStorage.getItem("session_signature")
+
+  if (fingerprint && signature) {
+    // manually include Zero Trust headers on navigation
+    await fetch("/api/session/verify", {
+      headers: {
+        "x-session-fingerprint": fingerprint,
+        "x-signature": signature,
+      },
+    })
+
+    // create a one-time redirect with trust headers in query params
+    const url = new URL("/main", window.location.origin)
+    url.searchParams.set("f", fingerprint)
+    url.searchParams.set("s", signature)
+    window.location.href = url.toString()
+  } else {
+    window.location.href = "/invite"
+  }
+}, 1000)
     } catch (err) {
       console.error("❌ Verification error:", err)
       setError(err instanceof Error ? err.message : "Verification failed")
@@ -164,7 +190,6 @@ export default function InvitePage() {
                 />
               </div>
 
-              {/* Feedback */}
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>

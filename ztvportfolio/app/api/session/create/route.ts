@@ -23,17 +23,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🔎 Collect environment info
+    // ──────────────────────────────────────────────
+    // 🌐 Robust IP Resolution — works across Vercel / Cloudflare / local
+    // ──────────────────────────────────────────────
+    const forwardedFor = request.headers.get("x-forwarded-for")
     const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      forwardedFor
+        ?.split(",")
+        .map((i) => i.trim())
+        .find(
+          (i) =>
+            i &&
+            !i.startsWith("10.") &&
+            !i.startsWith("172.") &&
+            !i.startsWith("192.168")
+        ) ||
+      request.headers.get("cf-connecting-ip") ||
       request.headers.get("x-real-ip") ||
+      request.headers.get("x-vercel-forwarded-for") ||
       "127.0.0.1"
+
     const userAgent = request.headers.get("user-agent") || "unknown"
 
-    // 🧠 1️⃣ Verify that the client fingerprint was signed by the server (authentic invite)
+    // ──────────────────────────────────────────────
+    // 1️⃣ Verify server-signed fingerprint (authentic client)
+    // ──────────────────────────────────────────────
     const publicKey = getServerPublicKey()
     const isValid = verifySignature(fingerprint, signature, publicKey)
-
     if (!isValid) {
       await createAuditLog("session_creation_failed", inviteHash, null, ip, userAgent, {
         reason: "Invalid signed fingerprint (forged client signature)",
@@ -41,7 +57,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }
 
-    // 📨 2️⃣ Load invite from DB
+    // ──────────────────────────────────────────────
+    // 2️⃣ Load invite
+    // ──────────────────────────────────────────────
     const invite = await getInviteByHash(inviteHash)
     if (!invite) {
       await createAuditLog("session_creation_failed", null, null, ip, userAgent, {
@@ -50,8 +68,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invite not found" }, { status: 404 })
     }
 
-    // 🕒 3️⃣ Check IP binding
+    // ──────────────────────────────────────────────
+    // 3️⃣ Enforce or create IP binding
+    // ──────────────────────────────────────────────
     const existingBinding = await getIpBinding(inviteHash)
+
     if (existingBinding && existingBinding.bound_ip !== ip) {
       await createAuditLog("ip_mismatch", inviteHash, null, ip, userAgent, {
         boundIp: existingBinding.bound_ip,
@@ -62,15 +83,19 @@ export async function POST(request: NextRequest) {
 
     if (!existingBinding) {
       await createIpBinding(inviteHash, ip)
-      await createAuditLog("ip_binding_created", inviteHash, null, ip, userAgent, { boundIp: ip })
+      await createAuditLog("ip_binding_created", inviteHash, null, ip, userAgent, {
+        boundIp: ip,
+      })
     }
 
-    // 🧾 4️⃣ Check if this fingerprint already has a session
-    const existingSession = await getSessionByFingerprint(fingerprint)
+    // ──────────────────────────────────────────────
+    // 4️⃣ Reuse or create session (invite-scoped only)
+    // ──────────────────────────────────────────────
+    const priorSession = await getSessionByFingerprint(fingerprint)
     let sessionId: string
 
-    if (existingSession) {
-      sessionId = existingSession.session_id
+    if (priorSession && priorSession.invite_hash === inviteHash) {
+      sessionId = priorSession.session_id
       await updateSessionLastSeen(fingerprint)
       await createAuditLog("session_resumed", inviteHash, sessionId, ip, userAgent)
     } else {
@@ -80,31 +105,27 @@ export async function POST(request: NextRequest) {
       await markInviteUsed(inviteHash)
     }
 
-    // ✍️ 5️⃣ Server re-signs fingerprint to create a durable session signature
+    // ──────────────────────────────────────────────
+    // 5️⃣ Server re-signs fingerprint → durable session signature
+    // ──────────────────────────────────────────────
     const privateKey = getServerPrivateKey()
     const signedFingerprint = signData(fingerprint, privateKey)
 
-    // ✅ 6️⃣ Respond with signed session data
-    const response = NextResponse.json({
+    // ──────────────────────────────────────────────
+    // 6️⃣ Respond — pure Zero-Trust, no cookies
+    // ──────────────────────────────────────────────
+    return NextResponse.json({
       success: true,
       sessionId,
       sessionFingerprint: fingerprint,
       signedSession: signedFingerprint,
       redirect: "/main",
     })
-
-    // Optional: minimal session cookie
-    response.cookies.set("session_fingerprint", fingerprint, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    })
-
-    return response
   } catch (error) {
     console.error("❌ Error creating session:", error)
-    return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to create session" },
+      { status: 500 }
+    )
   }
 }

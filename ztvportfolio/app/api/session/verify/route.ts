@@ -3,49 +3,54 @@ import { getSessionByFingerprint, updateSessionLastSeen, getIpBinding, createAud
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionFingerprint = request.cookies.get("session_fingerprint")?.value
+    const sessionFingerprint = request.headers.get("x-session-fingerprint")
 
     if (!sessionFingerprint) {
-      return NextResponse.json({ error: "No session found" }, { status: 401 })
+      return NextResponse.json({ error: "No session fingerprint found" }, { status: 401 })
     }
 
-    // Get client information
+    // 🧠 Client context
+    const forwardedFor = request.headers.get("x-forwarded-for")
     const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "unknown"
+      forwardedFor
+        ?.split(",")
+        .map((i) => i.trim())
+        .find(
+          (i) =>
+            i &&
+            !i.startsWith("10.") &&
+            !i.startsWith("172.") &&
+            !i.startsWith("192.168")
+        ) ||
+      request.headers.get("cf-connecting-ip") ||
+      request.headers.get("x-real-ip") ||
+      request.headers.get("x-vercel-forwarded-for") ||
+      "127.0.0.1"
+
     const userAgent = request.headers.get("user-agent") || "unknown"
 
-    // Get session from database
+    // 🧩 Retrieve session
     const session = await getSessionByFingerprint(sessionFingerprint)
-
     if (!session) {
       await createAuditLog("session_not_found", null, sessionFingerprint, ip, userAgent)
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
-    // Verify IP binding
-    const ipBinding = await getIpBinding(session.invite_id.toString())
+    // ✅ Lookup IP binding by invite_hash, not invite_id
+    const ipBinding = await getIpBinding(session.invite_hash)
 
     if (ipBinding && ipBinding.bound_ip !== ip) {
-      await createAuditLog(
-        "ip_mismatch_session",
-        String(session.invite_id),
-        sessionFingerprint,
-        ip,
-        userAgent,
-        {
-      boundIp: ipBinding.bound_ip,
-      requestIp: ip,
-        }
-    )
+      await createAuditLog("ip_mismatch_session", session.invite_hash, session.session_id, ip, userAgent, {
+        boundIp: ipBinding.bound_ip,
+        requestIp: ip,
+      })
       return NextResponse.json(
-        {
-          error: "IP address mismatch. Your session is bound to a different IP.",
-        },
-        { status: 403 },
+        { error: "IP address mismatch — session bound to another IP" },
+        { status: 403 }
       )
     }
 
-    // Update last seen
+    // 🧩 Update last seen time
     await updateSessionLastSeen(sessionFingerprint)
 
     return NextResponse.json({
@@ -58,7 +63,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("Error verifying session:", error)
+    console.error("❌ Error verifying session:", error)
     return NextResponse.json({ error: "Failed to verify session" }, { status: 500 })
   }
 }

@@ -8,6 +8,22 @@ import DashboardGrid from "./components/DashboardGrid"
 import AIAssistant from "./components/AIAssistant"
 import { motion } from "framer-motion"
 
+if (typeof window !== "undefined") {
+  const params = new URLSearchParams(window.location.search)
+  const f = params.get("f")
+  const s = params.get("s")
+
+  if (f && s) {
+    sessionStorage.setItem("session_fingerprint", f)
+    sessionStorage.setItem("session_signature", s)
+    localStorage.setItem("headers:x-session-fingerprint", f)
+    localStorage.setItem("headers:x-signature", s)
+    // 🧹 Clean URL (no sensitive data in address bar)
+    const clean = window.location.origin + window.location.pathname
+    window.history.replaceState({}, document.title, clean)
+  }
+}
+
 export default function MainPageContent() {
   const router = useRouter()
 
