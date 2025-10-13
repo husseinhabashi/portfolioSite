@@ -74,20 +74,28 @@ export async function POST(request: NextRequest) {
     // ──────────────────────────────────────────────
     const existingBinding = await getIpBinding(inviteHash)
 
-    if (existingBinding && existingBinding.bound_ip !== ip) {
-      await createAuditLog("ip_mismatch", inviteHash, null, ip, userAgent, {
-        boundIp: existingBinding.bound_ip,
-        requestIp: ip,
-      })
-      return NextResponse.json({ error: "IP mismatch" }, { status: 403 })
-    }
+   // 🔒 IP binding enforcement
+if (existingBinding) {
+  // if a bound_ip exists and is not null, enforce match
+  if (existingBinding.bound_ip && existingBinding.bound_ip !== ip) {
+    await createAuditLog("ip_mismatch", inviteHash, null, ip, userAgent, {
+      boundIp: existingBinding.bound_ip,
+      requestIp: ip,
+    })
+    return NextResponse.json({ error: "IP mismatch" }, { status: 403 })
+  }
 
-    if (!existingBinding) {
-      await createIpBinding(inviteHash, ip)
-      await createAuditLog("ip_binding_created", inviteHash, null, ip, userAgent, {
-        boundIp: ip,
-      })
-    }
+  // If bound_ip is null, treat it as "unrestricted" (bypass check)
+  if (!existingBinding.bound_ip) {
+    console.log(`[ZeroTrust] IP binding bypassed — invite ${inviteHash} has null IP binding`)
+  }
+} else {
+  // No binding yet? Create one automatically
+  await createIpBinding(inviteHash, ip)
+  await createAuditLog("ip_binding_created", inviteHash, null, ip, userAgent, {
+    boundIp: ip,
+  })
+}
 
     // ──────────────────────────────────────────────
     // 4️⃣ Reuse or create session (invite-scoped only)
