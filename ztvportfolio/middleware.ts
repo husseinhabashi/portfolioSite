@@ -13,18 +13,15 @@ export async function middleware(request: NextRequest) {
   // Public routes — skip verification
   // ──────────────────────────────────────────────
   const isPublic =
-    pathname === "/" ||
-    pathname.startsWith("/invite") ||
-    pathname.startsWith("/api/ip") ||
-    pathname.startsWith("/invite/token") ||
-    pathname.startsWith("/api/invite/") ||
-    pathname.startsWith("/api/invite/:path*") ||
-    pathname.startsWith("/api/track/pixel") ||
-    pathname.startsWith("/api/invites/") ||
-    pathname.startsWith("/api/session/create") ||
-    pathname.startsWith("/api/admin/challenge") ||
-    pathname.startsWith("/api/admin/verify") ||
-    pathname.startsWith("/api/main")
+  pathname === "/" ||
+  pathname.startsWith("/invite") ||               // public invite pages
+  pathname.startsWith("/api/invites/") ||         // ✅ one-time invite tokens (plural)
+  pathname.startsWith("/api/ip") ||
+  pathname.startsWith("/api/track/pixel") ||
+  pathname.startsWith("/api/session/create") ||
+  pathname.startsWith("/api/admin/challenge") ||
+  pathname.startsWith("/api/admin/verify") ||
+  pathname.startsWith("/api/main")
 
   if (isPublic) {
     return NextResponse.next()
