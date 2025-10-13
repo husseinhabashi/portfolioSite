@@ -9,7 +9,7 @@ export default function InviteTokenPage({ params }: { params: { token: string } 
   useEffect(() => {
     async function fetchInvite() {
       try {
-        const res = await fetch(`/api/invite/${params.token}`)
+        const res = await fetch(`/api/invites/${params.token}`)
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed to load invite")
         setInviteData(data)
