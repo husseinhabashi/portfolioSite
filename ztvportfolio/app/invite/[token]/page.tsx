@@ -72,7 +72,6 @@ export default function InviteTokenPage({ params }: { params: { token: string } 
           <p><strong>Email:</strong> {inviteData.email}</p>
           <p><strong>Invite Hash:</strong> {inviteData.inviteHash}</p>
           <p><strong>Signature:</strong> {inviteData.signature}</p>
-          <p><strong>Expires:</strong> {inviteData.expiresAt ?? "Never"}</p>
         </div>
 
         <p className="text-[10px] text-center text-green-700 mt-8">
