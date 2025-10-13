@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       VALUES (${inviteHash}, ${token}, NOW() + interval '1 day')
     `
 
-    const oneTimeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invites/${token}`
+    const oneTimeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`
 
     console.log(`[invite] ✅ New one-time invite for ${email}`)
     return NextResponse.json({
