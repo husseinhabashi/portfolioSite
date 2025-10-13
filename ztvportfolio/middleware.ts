@@ -1,4 +1,4 @@
-// Force Node.js runtime — crypto won't work in the Edge runtime
+// ✅ Force Node.js runtime — Edge Runtime breaks crypto operations
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
@@ -9,45 +9,49 @@ import crypto from "crypto"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 🟢 Public routes that skip verification
-  const publicRoutes = [
-  "/", 
-  "/invite", 
-  "/invite/",       
-  "/invite/token",
-  "/api/ip", 
-  "/api/track/pixel",
-  "/api/invites/verify", 
-  "/api/invites/generate",
-  "/api/session/create", 
-  "/api/admin/challenge", 
-  "/api/admin/verify",
-  "/api/main",
-]
+  // ──────────────────────────────────────────────
+  // Public Routes — skip verification
+  // These should *not* be behind Zero Trust headers
+  // Includes all /invite and related API routes
+  // ──────────────────────────────────────────────
+  const isPublic =
+    pathname === "/" ||
+    pathname.startsWith("/invite") || // ✅ covers /invite, /invite/, /invite/[token]
+    pathname.startsWith("/api/ip") ||
+    pathname.startsWith("/api/track/pixel") ||
+    pathname.startsWith("/api/invites/") ||
+    pathname.startsWith("/api/session/create") ||
+    pathname.startsWith("/api/admin/challenge") ||
+    pathname.startsWith("/api/admin/verify") ||
+    pathname.startsWith("/api/main")
 
-  // Let public routes through
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  if (isPublic) {
     return NextResponse.next()
   }
 
-  // 🔍 Extract trust headers
+  // ──────────────────────────────────────────────
+  // Extract Zero-Trust Headers
+  // ──────────────────────────────────────────────
   const fingerprint = request.headers.get("x-session-fingerprint")
   const signature = request.headers.get("x-signature")
 
-  // 🚫 Missing headers → force re-auth
   if (!fingerprint || !signature) {
     console.warn(`[AUTH] Missing trust headers → redirecting to /invite`)
     return NextResponse.redirect(new URL("/invite", request.url))
   }
 
-  // 🧩 Lookup session via fingerprint
+  // ──────────────────────────────────────────────
+  // Validate Session by Fingerprint
+  // ──────────────────────────────────────────────
   const session = await getSessionByFingerprint(fingerprint)
   if (!session) {
     console.warn(`[AUTH] Unknown fingerprint → redirecting`)
     return NextResponse.redirect(new URL("/invite", request.url))
   }
 
-  // 🔏 Verify ECDSA signature
+  // ──────────────────────────────────────────────
+  // Verify Signature using Stored Public Key
+  // ──────────────────────────────────────────────
   let isValid = false
   try {
     const verifier = crypto.createVerify("SHA256")
@@ -63,14 +67,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/invite", request.url))
   }
 
-  // 🧠 Validate linked invite
+  // ──────────────────────────────────────────────
+  // Validate Linked Invite
+  // ──────────────────────────────────────────────
   const invite = await getInviteByHash(session.invite_hash)
   if (!invite || !invite.is_active || !invite.used) {
     console.warn(`[AUTH] Inactive or expired invite → redirecting`)
     return NextResponse.redirect(new URL("/invite", request.url))
   }
 
-  // 🟩 All checks passed — inject Zero-Trust header
+  // ──────────────────────────────────────────────
+  // Trust Granted — Inject Security Header
+  // ──────────────────────────────────────────────
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-session-trust", "verified")
 
@@ -79,13 +87,15 @@ export async function middleware(request: NextRequest) {
   })
 }
 
-// 🔒 Apply middleware only to sensitive areas
+// ──────────────────────────────────────────────
+// Apply Middleware Only to Protected Routes
+// ──────────────────────────────────────────────
 export const config = {
   matcher: [
-    "/main",            // root protected page
-    "/main/:path*",     // sub-routes under /main
-    "/api/secure/:path*", // optional secured APIs
-    "/api/admin/invite",
-    "/api/admin/ipbinding",  // secured admin endpoint
+    "/main",                // Protected dashboard root
+    "/main/:path*",         // Sub-routes under /main
+    "/api/secure/:path*",   // Secure APIs
+    "/api/admin/invite",    // Admin-only invite ops
+    "/api/admin/ipbinding", // Admin-only IP binding ops
   ],
 }
