@@ -11,7 +11,7 @@ export default function EducationCertsPage() {
 
   const sections = [
     {
-      title: "🎓 Education",
+      title: "Education",
       focus: "Formal academic foundation in computing and applied cybersecurity.",
       content: [
         "B.S. in Computer Science — Montclair State University",
@@ -19,16 +19,16 @@ export default function EducationCertsPage() {
       ],
     },
     {
-      title: "✅ Completed Certifications",
+      title: "Completed Certifications",
       focus: "Practical SOC and incident response training (Level Effect).",
       content: [
-        "SOC100-1: Security Operations Fundamentals",
-        "SOC100-2: SOC Analyst Intermediate",
-        "SOC100-3: Advanced SOC Analysis & Incident Response",
+        "SOC100-1 (Level Effect): Security Operations Fundamentals",
+        "SOC100-2 (Level Effect): SOC Analyst Intermediate",
+        "SOC100-3 (Level Effect): Advanced SOC Analysis, Incident Response, and Reverse Engineering",
       ],
     },
     {
-      title: "⚙️ In Progress",
+      title: "In Progress",
       focus: "Actively expanding red and blue team specialization.",
       content: [
         "CDCP (Cyber Defense Certified Professional) — Level Effect (Expected: Nov 2025)",
@@ -36,7 +36,7 @@ export default function EducationCertsPage() {
       ],
     },
     {
-      title: "🎯 Planned / Upcoming",
+      title: "Planned / Upcoming",
       focus: "Future targets for continued growth and professional mastery.",
       content: [
         "Offensive Security Certified Professional (OSCP) — Target 2025–2026",
