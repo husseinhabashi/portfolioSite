@@ -21,10 +21,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/admin/challenge") ||
     pathname.startsWith("/api/admin/verify") ||
     pathname.startsWith("/api/main") 
-  //  pathname.startsWith("/api/main/projects") ||
-   // pathname.startsWith("/api/main/skills") ||
-    //pathname.startsWith("/api/main/certifications") ||
-    //pathname.startsWith("/api/main/experience")
 
   if (isPublic) return NextResponse.next()
 
@@ -91,7 +87,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/main",
-    "/main/:path*",        // ✅ include subroutes like /main/projects
+    "/main/:path*",       
     "/api/secure/:path*",
     "/api/leaks/:path*",
   ],
