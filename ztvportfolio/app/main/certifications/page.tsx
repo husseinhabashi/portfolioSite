@@ -3,119 +3,117 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, BadgeCheck, X } from "lucide-react"
+import { ArrowLeft, GraduationCap, Plus, Minus } from "lucide-react"
 
-const certs = [
-  {
-    name: "Cyber Defense Certified Professional (CDCP)",
-    issuer: "Level Effect",
-    year: "In Progress",
-  },
-  {
-    name: "SOC100-1",
-    issuer: "Level Effect",
-    year: "2025",
-    details: `Covers Tier 1 SOC fundamentals: log analysis, endpoint triage,
-alert correlation, and SIEM workflow management. Focused on 
-Windows/Linux incident triage and investigation techniques.`,
-  },
-  {
-    name: "SOC100-2",
-    issuer: "Level Effect",
-    year: "2025",
-    details: `Intermediate SOC operations: network threat hunting,
-packet-level analysis with Wireshark and Zeek, and use of Yara
-and Sysinternals for malware identification.`,
-  },
-  {
-    name: "SOC100-3",
-    issuer: "Level Effect",
-    year: "2025",
-    details: `Advanced detection engineering: building Sigma rules, 
-automating triage workflows in ELK, and developing MITRE-aligned 
-playbooks for high-fidelity detections.`,
-  },
-  {
-    name: "CompTIA Security+ / Network+",
-    issuer: "CompTIA",
-    year: "In Progress",
-  },
-  {
-    name: "OSCP (HackTheBox Certs)",
-    issuer: "OffSec / HTB",
-    year: "In Progress",
-  },
-]
+export default function EducationCertsPage() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const toggle = (index: number) => setOpenIndex(openIndex === index ? null : index)
 
-export default function CertificationsPage() {
-  const [active, setActive] = useState<number | null>(null)
+  const sections = [
+    {
+      title: "🎓 Education",
+      focus: "Formal academic foundation in computing and applied cybersecurity.",
+      content: [
+        "B.S. in Computer Science — Montclair State University",
+        "Focus: Cybersecurity, Networking, and Machine Learning",
+      ],
+    },
+    {
+      title: "✅ Completed Certifications",
+      focus: "Practical SOC and incident response training (Level Effect).",
+      content: [
+        "SOC100-1: Security Operations Fundamentals",
+        "SOC100-2: SOC Analyst Intermediate",
+        "SOC100-3: Advanced SOC Analysis & Incident Response",
+      ],
+    },
+    {
+      title: "⚙️ In Progress",
+      focus: "Actively expanding red and blue team specialization.",
+      content: [
+        "CDCP (Cyber Defense Certified Professional) — Level Effect (Expected: Nov 2025)",
+        "HTB Certified Penetration Testing Specialist (HTB CPTS) — Hack The Box Academy",
+      ],
+    },
+    {
+      title: "🎯 Planned / Upcoming",
+      focus: "Future targets for continued growth and professional mastery.",
+      content: [
+        "Offensive Security Certified Professional (OSCP) — Target 2025–2026",
+      ],
+    },
+  ]
 
   return (
     <div className="relative min-h-screen bg-black text-green-400 font-mono overflow-hidden">
       <div className="cyber-grid" />
 
-      {/* 🧭 Header */}
-      <header className="container mx-auto max-w-4xl px-4 pt-8 pb-4">
+      {/* HEADER */}
+      <header className="container mx-auto max-w-5xl px-4 pt-8 pb-6">
         <Link
           href="/main?fastload=true"
           className="inline-flex items-center gap-2 text-green-300/80 hover:text-green-300 transition"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
         </Link>
 
         <div className="mt-6 flex items-center gap-3">
-          <BadgeCheck className="h-5 w-5 text-green-400" />
-          <h1 className="text-xl sm:text-2xl font-bold tracking-wide">Certifications</h1>
+          <GraduationCap className="h-5 w-5 text-green-400" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-wide">
+            Edu. & Certs
+          </h1>
         </div>
+        <p className="mt-2 text-xs sm:text-sm text-green-300/80">
+          A blend of academic grounding and continuous upskilling through recognized cybersecurity programs.
+        </p>
       </header>
 
-      {/* 📜 Certification list */}
-      <main className="container mx-auto max-w-4xl px-4 pb-20">
-        {certs.map((c, i) => (
+      {/* MAIN BODY */}
+      <main className="container mx-auto max-w-5xl px-4 pb-20 space-y-6">
+        {sections.map((sec, i) => (
           <motion.div
-            key={c.name}
+            key={i}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="rounded-xl border border-green-800/60 bg-black/60 p-4 mb-3"
+            transition={{ delay: i * 0.1 }}
+            className="border border-green-900/50 bg-black/60 rounded-lg p-4 hover:border-green-500/50 transition relative"
           >
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-sm sm:text-base font-semibold">{c.name}</h2>
-                <p className="text-[11px] sm:text-xs text-green-300/80">{c.issuer}</p>
+                <h2 className="text-sm sm:text-base font-semibold">{sec.title}</h2>
+                <p className="text-xs sm:text-sm text-green-300/80 mt-1">
+                  Focus: {sec.focus}
+                </p>
               </div>
-              <div className="text-xs text-green-300/80 flex items-center gap-3">
-                {c.details && (
-                  <button
-                    onClick={() => setActive(active === i ? null : i)}
-                    className="text-green-400 hover:text-green-300 transition underline"
-                  >
-                    {active === i ? "Hide" : "More"}
-                  </button>
+
+              <button
+                onClick={() => toggle(i)}
+                className="text-green-400 hover:text-green-300 transition"
+              >
+                {openIndex === i ? (
+                  <Minus className="h-5 w-5" />
+                ) : (
+                  <Plus className="h-5 w-5" />
                 )}
-                <span>{c.year}</span>
-              </div>
+              </button>
             </div>
 
-            {/* 🧩 Details popup */}
+            {/* Expanded section */}
             <AnimatePresence>
-              {active === i && c.details && (
+              {openIndex === i && (
                 <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.25 }}
-                  className="mt-3 rounded-lg border border-green-700 bg-black/80 p-3 relative"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="mt-3 pl-3 border-l border-green-800/40"
                 >
-                  <button
-                    onClick={() => setActive(null)}
-                    className="absolute top-2 right-2 text-green-400 hover:text-red-400 transition"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <p className="text-xs text-green-300/90 leading-relaxed whitespace-pre-line">
-                    {c.details}
-                  </p>
+                  <ul className="list-disc list-inside text-xs sm:text-sm text-green-300/90 space-y-1">
+                    {sec.content.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
                 </motion.div>
               )}
             </AnimatePresence>
