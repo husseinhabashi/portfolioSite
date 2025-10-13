@@ -11,11 +11,19 @@ export async function middleware(request: NextRequest) {
 
   // 🟢 Public routes that skip verification
   const publicRoutes = [
-    "/", "/invite",
-    "/api/ip", "/api/track/pixel",
-    "/api/invites/verify", "/api/invites/generate",
-    "/api/session/create", "/api/admin/challenge", "/api/admin/verify", "/api/main", 
-  ]
+  "/", 
+  "/invite", 
+  "/invite/",       
+  "/invite/token",
+  "/api/ip", 
+  "/api/track/pixel",
+  "/api/invites/verify", 
+  "/api/invites/generate",
+  "/api/session/create", 
+  "/api/admin/challenge", 
+  "/api/admin/verify",
+  "/api/main",
+]
 
   // Let public routes through
   if (publicRoutes.some(route => pathname.startsWith(route))) {
