@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+
     // ──────────────────────────────────────────────
     // 🌐 Robust IP Resolution — works across Vercel / Cloudflare / local
     // ──────────────────────────────────────────────
@@ -110,7 +111,19 @@ export async function POST(request: NextRequest) {
     // ──────────────────────────────────────────────
     const privateKey = getServerPrivateKey()
     const signedFingerprint = signData(fingerprint, privateKey)
+    const response = NextResponse.json({
+  success: true,
+  sessionId,
+  sessionFingerprint: fingerprint,
+  signedSession: signedFingerprint,
+  redirect: "/main",
+})
 
+// add ephemeral trust cookies (httpOnly = false is fine since they’re signed)
+response.cookies.set("zt_fingerprint", fingerprint, { path: "/", httpOnly: false })
+response.cookies.set("zt_signature", signedFingerprint, { path: "/", httpOnly: false })
+
+return response
     // ──────────────────────────────────────────────
     // 6️⃣ Respond — pure Zero-Trust, no cookies
     // ──────────────────────────────────────────────
@@ -129,3 +142,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

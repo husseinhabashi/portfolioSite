@@ -7,18 +7,20 @@ import { Typewriter } from "@/components/ui/typewriter"
 import DashboardGrid from "./components/DashboardGrid"
 import AIAssistant from "./components/AIAssistant"
 import { motion } from "framer-motion"
+import { ztFetch } from "../../lib/zt-fetch" // keep relative path to match your tree
 
+// ─────────────────────────────────────────────────────
+// Bootstrap: accept f & s in URL once, persist, then clean URL
+// ─────────────────────────────────────────────────────
 if (typeof window !== "undefined") {
   const params = new URLSearchParams(window.location.search)
   const f = params.get("f")
   const s = params.get("s")
-
   if (f && s) {
     sessionStorage.setItem("session_fingerprint", f)
     sessionStorage.setItem("session_signature", s)
     localStorage.setItem("headers:x-session-fingerprint", f)
     localStorage.setItem("headers:x-signature", s)
-    // 🧹 Clean URL (no sensitive data in address bar)
     const clean = window.location.origin + window.location.pathname
     window.history.replaceState({}, document.title, clean)
   }
@@ -35,7 +37,6 @@ export default function MainPageContent() {
   const [shieldVisible, setShieldVisible] = useState(false)
   const [shieldFullyVisible, setShieldFullyVisible] = useState(false)
   const [shieldBrightness, setShieldBrightness] = useState<"normal" | "dim" | "bright">("normal")
-
   const [fadeOut, setFadeOut] = useState(false)
   const [showIP, setShowIP] = useState(false)
   const [fadeIPLine, setFadeIPLine] = useState(false)
@@ -63,14 +64,14 @@ export default function MainPageContent() {
 
   const ipSourceRef = useRef<HTMLSpanElement | null>(null)
 
-  // Positions (edit these to place the IP in header/fly targets)
+  // Positions
   const IP_POSITION = {
-    phone: { top: 0.8, left: 50 }, // rem / %
+    phone: { top: 0.8, left: 50 },
     desktop: { top: 2, left: 40 },
     center: { phone: { top: 50, left: 52 }, desktop: { top: 52, left: 40 } },
   }
 
-  // Mobile breakpoint flag
+  // Mobile breakpoint
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640)
@@ -79,7 +80,7 @@ export default function MainPageContent() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  // Timings (unchanged)
+  // Timings
   const TIMING = {
     fadeIn: 2000,
     fadeOut: 2000,
@@ -114,7 +115,7 @@ export default function MainPageContent() {
     document.documentElement.style.setProperty("--shield-dim-duration", `${TIMING.dimDuration}ms`)
   }, [TIMING.dimDuration])
 
-  // Fastload: skip cinematics (unchanged logic)
+  // Fastload: skip cinematics
   useEffect(() => {
     if (fastload) {
       setShieldVisible(false)
@@ -124,49 +125,62 @@ export default function MainPageContent() {
       setShowHeader(true)
       setShowDashboard(true)
       setShowAI(true)
-    }
-  }, [fastload])
-
-  // Clean URL after fastload handled
-  useEffect(() => {
-    if (fastload) {
+      // Clean URL after fastload handled
       const cleanUrl = window.location.origin + window.location.pathname
       window.history.replaceState({}, document.title, cleanUrl)
     }
   }, [fastload])
 
-  // Session verification
+  // ─────────────────────────────────────────────────────
+  // Zero-Trust: persist headers & verify once on mount
+  // ─────────────────────────────────────────────────────
   useEffect(() => {
-    const fingerprint = sessionStorage.getItem("session_fingerprint")
-    const signature = sessionStorage.getItem("session_signature")
-    if (!fingerprint || !signature) {
+    const f =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("session_fingerprint")
+        : null
+    const s =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("session_signature")
+        : null
+
+    if (!f || !s) {
       router.replace("/invite")
       return
     }
 
-    fetch("/api/main", {
-      headers: { "x-session-fingerprint": fingerprint, "x-signature": signature },
-    })
-      .then(async (res) => {
+    // Always mirror to localStorage for ztFetch (sub-pages/readers)
+    localStorage.setItem("headers:x-session-fingerprint", f)
+    localStorage.setItem("headers:x-signature", s)
+
+    ;(async () => {
+      try {
+        const res = await ztFetch("/api/main")
         if (!res.ok) throw new Error("Access denied")
-        const data = await res.json()
-        if (data.success) setVerified(true)
-        else throw new Error("Verification failed")
-      })
-      .catch(() => router.replace("/invite"))
+        const data: { success?: boolean; fingerprint?: string } = await res.json()
+        if (!data.success) throw new Error("Verification failed")
+        setVerified(true)
+      } catch {
+        router.replace("/invite")
+      }
+    })()
   }, [router])
 
-  // Shield + IP load
+  // Shield + IP load (after verified)
   useEffect(() => {
     if (!verified) return
-    fetch("/api/ip")
-      .then((res) => res.json())
-      .then((data) => setIp(data.ip ?? "Unknown"))
-      .catch(() => setIp("Unknown"))
-      .finally(() => {
+    ;(async () => {
+      try {
+        const res = await ztFetch("/api/ip")
+        const data: { ip?: string } = await res.json()
+        setIp(data.ip ?? "Unknown")
+      } catch {
+        setIp("Unknown")
+      } finally {
         setShieldVisible(true)
         schedule(TIMING.fadeIn, () => setShieldFullyVisible(true))
-      })
+      }
+    })()
   }, [verified])
 
   // Optional dim/bright cycle (disabled by default)
