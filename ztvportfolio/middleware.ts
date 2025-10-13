@@ -1,4 +1,4 @@
-// ✅ Force Node.js runtime — Edge Runtime breaks crypto operations
+// ✅ Force Node.js runtime — crypto requires it
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
@@ -10,13 +10,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // ──────────────────────────────────────────────
-  // Public Routes — skip verification
-  // These should *not* be behind Zero Trust headers
-  // Includes all /invite and related API routes
+  // Public routes — skip verification
   // ──────────────────────────────────────────────
   const isPublic =
     pathname === "/" ||
-    pathname.startsWith("/invite") || // ✅ covers /invite, /invite/, /invite/[token]
+    pathname.startsWith("/invite") ||
     pathname.startsWith("/api/ip") ||
     pathname.startsWith("/api/track/pixel") ||
     pathname.startsWith("/api/invites/") ||
@@ -30,7 +28,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ──────────────────────────────────────────────
-  // Extract Zero-Trust Headers
+  // Extract Zero-Trust headers
   // ──────────────────────────────────────────────
   const fingerprint = request.headers.get("x-session-fingerprint")
   const signature = request.headers.get("x-signature")
@@ -41,7 +39,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ──────────────────────────────────────────────
-  // Validate Session by Fingerprint
+  // Validate session by fingerprint
   // ──────────────────────────────────────────────
   const session = await getSessionByFingerprint(fingerprint)
   if (!session) {
@@ -50,7 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ──────────────────────────────────────────────
-  // Verify Signature using Stored Public Key
+  // Verify signature using stored public key
   // ──────────────────────────────────────────────
   let isValid = false
   try {
@@ -68,7 +66,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ──────────────────────────────────────────────
-  // Validate Linked Invite
+  // Validate linked invite
   // ──────────────────────────────────────────────
   const invite = await getInviteByHash(session.invite_hash)
   if (!invite || !invite.is_active || !invite.used) {
@@ -77,7 +75,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ──────────────────────────────────────────────
-  // Trust Granted — Inject Security Header
+  // Trust granted — inject security header
   // ──────────────────────────────────────────────
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-session-trust", "verified")
@@ -88,14 +86,13 @@ export async function middleware(request: NextRequest) {
 }
 
 // ──────────────────────────────────────────────
-// Apply Middleware Only to Protected Routes
+// Apply middleware only to protected user routes
 // ──────────────────────────────────────────────
 export const config = {
   matcher: [
-    "/main",                // Protected dashboard root
-    "/main/:path*",         // Sub-routes under /main
-    "/api/secure/:path*",   // Secure APIs
-    "/api/admin/invite",    // Admin-only invite ops
-    "/api/admin/ipbinding", // Admin-only IP binding ops
+    "/main",              // protected main area
+    "/main/:path*",       // sub-routes
+    "/api/secure/:path*", // secure APIs
+    "/api/leaks/:path*",  // canary / telemetry
   ],
 }
