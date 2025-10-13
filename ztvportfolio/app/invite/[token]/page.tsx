@@ -1,6 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
+import { ArrowLeft, LogIn } from "lucide-react"
 
 export default function InviteTokenPage({ params }: { params: { token: string } }) {
   const [inviteData, setInviteData] = useState<any>(null)
@@ -32,17 +34,35 @@ export default function InviteTokenPage({ params }: { params: { token: string } 
 
   if (!inviteData) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading invite...
+      <div className="min-h-screen flex items-center justify-center text-green-500/60 font-mono">
+        Loading invite token...
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-green-400 p-6">
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-black text-green-400 p-6">
+      {/* 🔙 Top Left — Home */}
+      <Link
+        href="/"
+        className="absolute top-4 left-4 flex items-center gap-1 text-green-500 hover:text-green-300 transition-colors text-sm font-mono"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Home
+      </Link>
+
+      {/* 🔐 Top Right — Login */}
+      <Link
+        href="/invite"
+        className="absolute top-4 right-4 flex items-center gap-1 text-green-500 hover:text-green-300 transition-colors text-sm font-mono"
+      >
+        Authenticate
+        <LogIn className="w-4 h-4" />
+      </Link>
+
       <div className="border border-green-800 rounded-lg p-6 w-full max-w-md bg-black/70 shadow-lg">
         <h1 className="text-2xl font-bold mb-4 text-center text-green-400">
-          One-Time Access Credentials
+          One-Time Access Token
         </h1>
         <p className="text-sm text-green-500 text-center mb-6">
           ⚠️ Copy these credentials securely — this page self-destructs after use.
