@@ -12,7 +12,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { useTheme } from "next-themes"
 import { QRCodeCanvas } from "qrcode.react"
+import { QRCodeThemed } from "@/components/ui/QRCodeThemed"
+
 
 interface Session {
   id: number
@@ -299,20 +302,16 @@ export default function AdminPage() {
                         </div>
                       </TabsContent>
 
-                      <TabsContent value="qr" className="flex flex-col items-center justify-center space-y-3">
-                        <div className="p-4 bg-white rounded-md">
-                          <QRCodeCanvas
-                            value={inviteResult.oneTimeUrl || ""}
-                            size={200}
-                            level="H"
-                            includeMargin={true}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground text-center max-w-xs">
-                          Scan this to open the invite link.<br />
-                          ⚠️ The page self-destructs after first use.
-                        </p>
-                      </TabsContent>
+                      <TabsContent
+  value="qr"
+  className="flex flex-col items-center justify-center space-y-4"
+>
+  <QRCodeThemed value={inviteResult.oneTimeUrl || ""} />
+  <p className="text-xs text-muted-foreground text-center max-w-xs">
+    Scan this to open the invite link.<br />
+    ⚠️ The page self-destructs after first use.
+  </p>
+</TabsContent>
                     </Tabs>
                   </div>
                 )}

@@ -1,35 +1,37 @@
-"use client"
+import { notFound } from "next/navigation"
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+export default async function InviteTokenPage({ params }: { params: { token: string } }) {
+  const token = params.token
 
-export default function InviteViewer() {
-  const { token } = useParams()
-  const [data, setData] = useState<any>(null)
-  const [error, setError] = useState("")
+  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/invite/token/${token}`, {
+    cache: "no-store",
+  })
 
-  useEffect(() => {
-    fetch(`/api/invite/${token}`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success) setError(data.error)
-        else setData(data)
-      })
-      .catch(() => setError("Network error"))
-  }, [token])
+  if (!res.ok) return notFound()
+  const data = await res.json()
 
-  if (error) return <div className="p-6 text-red-400">❌ {error}</div>
-  if (!data) return <div className="p-6 text-green-400">Loading invite...</div>
+  // If already used or invalid
+  if (!data.success || data.invite.used)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-center text-red-500">
+        <p>⚠️ This invite link has expired or already been used.</p>
+      </div>
+    )
 
   return (
-    <div className="min-h-screen bg-black text-green-400 flex flex-col items-center justify-center font-mono p-6">
-      <h1 className="text-2xl mb-4">✅ Invite Loaded</h1>
-      <div className="bg-green-950/20 border border-green-800 rounded-lg p-4 w-full max-w-md space-y-2">
-        <p><b>Email:</b> {data.email}</p>
-        <p><b>Invite Hash:</b> {data.inviteHash}</p>
-        <p><b>Signature:</b> {data.signature}</p>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-green-400 font-mono space-y-4 p-6">
+      <h1 className="text-2xl mb-4">🎟️ Zero Trust Vault — Invite Details</h1>
+
+      <div className="border border-green-500 p-4 rounded-md bg-black/60">
+        <p><strong>Email:</strong> {data.invite.email}</p>
+        <p><strong>Invite Hash:</strong> {data.invite.invite_hash}</p>
+        <p><strong>Signature:</strong> {data.invite.signature}</p>
+        <p><strong>Expires:</strong> {data.invite.expires_at ?? "Never"}</p>
       </div>
-      <p className="text-xs mt-4 text-green-500/70">This link self-destructs after use.</p>
+
+      <p className="text-sm text-green-500/80 mt-6 max-w-md text-center">
+        Copy these details securely — this page will self-destruct after first access.
+      </p>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { createInviteHash, generateNonce, signData } from "@/lib/crypto"
 import { createInvite, createIpBinding } from "@/lib/db"
 import { getServerPrivateKey } from "@/lib/env"
 
+
 export async function POST(request: NextRequest) {
   try {
     const { email, expiresInDays, bindIp } = await request.json()
