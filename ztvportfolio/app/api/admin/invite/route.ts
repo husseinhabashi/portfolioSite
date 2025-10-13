@@ -27,6 +27,14 @@ export async function POST(request: NextRequest) {
     // Create invite
     const invite = await createInvite(email, inviteHash, signature, expiresAt)
 
+    const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+
+
+    const oneTimeUrl = `${baseUrl}/invite?hash=${inviteHash}&sig=${encodeURIComponent(signature)}`
+
+
     // Conditionally create IP binding
     if (bindIp !== false) {
       // Optional IP placeholder or automatic binding later
@@ -39,15 +47,15 @@ export async function POST(request: NextRequest) {
     console.log(`[invite] ✅ New invite created for ${email}`)
 
     return NextResponse.json({
-      success: true,
-      invite: {
-        email: invite.email,
-        inviteHash: invite.invite_hash,
-        signature: invite.signature,
-        expiresAt: invite.expires_at,
-        ipBound: bindIp !== false,
-      },
-    })
+  success: true,
+  invite: {
+    email: invite.email,
+    inviteHash: invite.invite_hash,
+    signature: invite.signature,
+    expiresAt: invite.expires_at,
+    oneTimeUrl, // 👈 the link your QR code will use
+  },
+})
   } catch (err) {
     console.error("[invite] ❌ Error generating invite:", err)
     return NextResponse.json({ error: "Failed to generate invite" }, { status: 500 })

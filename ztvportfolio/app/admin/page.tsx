@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { QRCodeCanvas } from "qrcode.react"
 
 interface Session {
   id: number
@@ -48,7 +49,7 @@ export default function AdminPage() {
   const [expiresInDays, setExpiresInDays] = useState(7)
   const [inviteResult, setInviteResult] = useState<any>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
-  const [bindIp, setBindIp] = useState(true) // ✅ new toggle for IP binding
+  const [bindIp, setBindIp] = useState(true)
 
   useEffect(() => {
     requestChallenge()
@@ -123,7 +124,7 @@ export default function AdminPage() {
     }
   }
 
-  // --- Authentication screen ---
+  // 🧱 Authentication screen
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -213,7 +214,7 @@ export default function AdminPage() {
     )
   }
 
-  // --- Authenticated Admin Panel ---
+  // 🧠 Authenticated Admin Panel
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -245,11 +246,13 @@ export default function AdminPage() {
                 <CardTitle>Create Invite</CardTitle>
                 <CardDescription>Generate cryptographically signed invites</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Email</Label>
                   <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="user@example.com" />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Expires In (days)</Label>
                   <Input
@@ -260,7 +263,6 @@ export default function AdminPage() {
                   />
                 </div>
 
-                {/* ✅ Toggle for IP binding */}
                 <div className="flex items-center gap-3 mt-4">
                   <Switch id="bind-ip" checked={bindIp} onCheckedChange={setBindIp} />
                   <Label htmlFor="bind-ip" className="text-sm">
@@ -274,26 +276,49 @@ export default function AdminPage() {
                 </Button>
 
                 {inviteResult && (
-                  <div className="mt-6 border rounded-md p-4 font-mono text-xs bg-muted/10">
-                    {inviteResult.error ? (
-                      <p className="text-red-500">{inviteResult.error}</p>
-                    ) : (
-                      <>
-                        <p><strong>Email:</strong> {inviteResult.email}</p>
-                        <p><strong>Hash:</strong> {inviteResult.inviteHash}</p>
-                        <p><strong>Signature:</strong> {inviteResult.signature}</p>
-                        <p><strong>Expires:</strong> {inviteResult.expiresAt}</p>
-                        <p><strong>IP Binding:</strong> {inviteResult.ipBound ? "Enabled" : "Disabled"}</p>
-                      </>
-                    )}
+                  <div className="mt-6 border rounded-md p-4 bg-muted/10">
+                    <Tabs defaultValue="text" className="w-full">
+                      <TabsList className="mb-3">
+                        <TabsTrigger value="text">Text View</TabsTrigger>
+                        <TabsTrigger value="qr">QR Code</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="text">
+                        <div className="font-mono text-xs space-y-2">
+                          {inviteResult.error ? (
+                            <p className="text-red-500">{inviteResult.error}</p>
+                          ) : (
+                            <>
+                              <p><strong>Email:</strong> {inviteResult.email}</p>
+                              <p><strong>Invite Hash:</strong> {inviteResult.inviteHash}</p>
+                              <p><strong>Signature:</strong> {inviteResult.signature}</p>
+                              <p><strong>Expires:</strong> {inviteResult.expiresAt ?? "Never"}</p>
+                              <p><strong>One-Time URL:</strong> {inviteResult.oneTimeUrl}</p>
+                            </>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="qr" className="flex flex-col items-center justify-center space-y-3">
+                        <div className="p-4 bg-white rounded-md">
+                          <QRCodeCanvas
+                            value={inviteResult.oneTimeUrl || ""}
+                            size={200}
+                            level="H"
+                            includeMargin={true}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center max-w-xs">
+                          Scan this to open the invite link.<br />
+                          ⚠️ The page self-destructs after first use.
+                        </p>
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* --- Other Tabs unchanged --- */}
-          {/* Sessions and Audit sections remain as in your code */}
         </Tabs>
       </div>
     </div>
