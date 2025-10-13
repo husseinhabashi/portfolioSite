@@ -66,8 +66,8 @@ export default function MainPageContent() {
 
   // Positions
   const IP_POSITION = {
-    phone: { top: 0.8, left: 50 },
-    desktop: { top: 2, left: 40 },
+    phone: { top: 1, left: 49 },
+    desktop: { top: 2, left: 35 },
     center: { phone: { top: 50, left: 52 }, desktop: { top: 52, left: 40 } },
   }
 
@@ -193,6 +193,28 @@ export default function MainPageContent() {
 
   if (!verified) return null
 
+  function handleIpAnimation() {
+  setFadeIPLine(true)
+  setTimeout(() => {
+    setMoveIPToCenter(true)
+    setTimeout(() => {
+      setShieldBrightness("bright")
+      setTimeout(() => {
+        setShieldBrightness("normal")
+        setShieldVisible(false)
+        setTimeout(() => {
+          setShowHeader(true)
+          setTimeout(() => {
+            setMoveIPToHeader(true)
+            // 🕒 Delay dashboard appearance after IP locks into header
+            setTimeout(() => setShowDashboard(true), 1000)
+          }, TIMING.headerDelay)
+        }, TIMING.fadeOut)
+      }, TIMING.pulseDuration)
+    }, TIMING.pulseDelay)
+  }, TIMING.ipPrintDelay)
+}
+
   return (
     <div className="relative min-h-screen bg-black text-green-400 font-mono flex flex-col items-center justify-center text-center px-3 sm:px-4 overflow-hidden">
       {/* 🛡️ Shield */}
@@ -316,92 +338,120 @@ export default function MainPageContent() {
         </div>
       )}
 
-      {/* 🌐 IP cinematic sequence */}
-      {showIP && ip && (
-        <div
-          className={[
-            "fixed font-mono transition-all ease-in-out text-center pointer-events-none",
-            "text-xs sm:text-base px-2 sm:px-0",
-          ].join(" ")}
+    {/* 🌐 IP cinematic sequence */}
+{showIP && ip && (
+  <div
+    className={[
+      "fixed font-mono transition-all ease-in-out text-center pointer-events-none",
+      "text-xs sm:text-base px-2 sm:px-0",
+    ].join(" ")}
+    style={{
+      zIndex: 60,
+      maxWidth: "90vw",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      transitionDuration: "1000ms",
+      position: "fixed",
+      left: moveIPToHeader
+        ? `${isMobile ? IP_POSITION.phone.left : IP_POSITION.desktop.left}%`
+        : moveIPToCenter
+        ? `${isMobile ? IP_POSITION.center.phone.left : IP_POSITION.center.desktop.left}%`
+        : "50%",
+      top: moveIPToHeader
+        ? `${isMobile ? IP_POSITION.phone.top : IP_POSITION.desktop.top}rem`
+        : moveIPToCenter
+        ? `${isMobile ? IP_POSITION.center.phone.top : IP_POSITION.center.desktop.top}%`
+        : "60%",
+      transform: moveIPToCenter ? "translate(-50%, -50%)" : "translate(-50%, 0)",
+      fontFamily: "ui-monospace, Menlo, Monaco, Consolas, monospace",
+      whiteSpace: "nowrap",
+      textAlign: "left",
+    }}
+  >
+    {/* 🖥️ Desktop: inline IP */}
+    {!isMobile && (
+      <div className="flex items-baseline justify-center" style={{ whiteSpace: "pre" }}>
+        <span
+          id="ip-line"
+          className={`text-green-400 transition-opacity duration-700 ${fadeIPLine ? "opacity-0" : "opacity-100"}`}
+          style={{ display: "inline-block", width: `${PREFIX.length}ch` }}
+        >
+          <Typewriter
+            text={PREFIX}
+            speed={45}
+            cursor={false}
+            onComplete={() => setTimeout(() => setShowIPAddress(true), 800)}
+          />
+        </span>
+        <span>&nbsp;</span>
+        <span
+          ref={ipSourceRef}
+          id="ip-address"
+          className="text-green-500 font-semibold overflow-hidden truncate text-xs sm:text-base"
           style={{
-            zIndex: 60,
-            maxWidth: "90vw",
-            overflow: "hidden",
+            display: "inline-block",
+            width: `${Math.max((ip ?? "").length, 15)}ch`,
             textOverflow: "ellipsis",
-            transitionDuration: "1000ms",
-            position: "fixed",
-            left: moveIPToHeader
-              ? `${isMobile ? IP_POSITION.phone.left : IP_POSITION.desktop.left}%`
-              : moveIPToCenter
-              ? `${isMobile ? IP_POSITION.center.phone.left : IP_POSITION.center.desktop.left}%`
-              : "50%",
-            top: moveIPToHeader
-              ? `${isMobile ? IP_POSITION.phone.top : IP_POSITION.desktop.top}rem`
-              : moveIPToCenter
-              ? `${isMobile ? IP_POSITION.center.phone.top : IP_POSITION.center.desktop.top}%`
-              : "60%",
-            transform: moveIPToCenter ? "translate(-50%, -50%)" : "translate(-50%, 0)",
-            fontFamily: "ui-monospace, Menlo, Monaco, Consolas, monospace",
             whiteSpace: "nowrap",
-            textAlign: "left",
+            verticalAlign: "bottom",
           }}
         >
-          {/* Desktop inline printing shown here (mobile branch unchanged) */}
-          <div className="flex items-baseline justify-center" style={{ whiteSpace: "pre" }}>
-            <span
-              id="ip-line"
-              className={`text-green-400 transition-opacity duration-700 ${fadeIPLine ? "opacity-0" : "opacity-100"}`}
-              style={{ display: "inline-block", width: `${PREFIX.length}ch` }}
-            >
-              <Typewriter text={PREFIX} speed={45} cursor={false} onComplete={() => setTimeout(() => setShowIPAddress(true), 800)} />
-            </span>
-            <span>&nbsp;</span>
-            <span
-              ref={ipSourceRef}
-              id="ip-address"
-              className="text-green-500 font-semibold overflow-hidden truncate text-xs sm:text-base"
-              style={{
-                display: "inline-block",
-                width: `${Math.max((ip ?? "").length, 15)}ch`,
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                verticalAlign: "bottom",
-              }}
-            >
-              {showIPAddress ? (
-                <Typewriter
-                  text={ip!}
-                  speed={50}
-                  cursor={false}
-                  onComplete={() => {
-                    setFadeIPLine(true)
-                    setTimeout(() => {
-                      setMoveIPToCenter(true)
-                      setTimeout(() => {
-                        setShieldBrightness("bright")
-                        setTimeout(() => {
-                          setShieldBrightness("normal")
-                          setShieldVisible(false)
-                          setTimeout(() => {
-                            setShowHeader(true)
-                            setTimeout(() => {
-                              setMoveIPToHeader(true)
-                              // 🕒 Delay dashboard appearance after IP locks into header
-                              setTimeout(() => setShowDashboard(true), 1000)
-                            }, TIMING.headerDelay)
-                          }, TIMING.fadeOut)
-                        }, TIMING.pulseDuration)
-                      }, TIMING.pulseDelay)
-                    }, TIMING.ipPrintDelay)
-                  }}
-                />
-              ) : (
-                <span style={{ visibility: "hidden" }}>000.000.000.000</span>
-              )}
-            </span>
-          </div>
-        </div>
-      )}
+          {showIPAddress ? (
+            <Typewriter
+              text={ip!}
+              speed={50}
+              cursor={false}
+              onComplete={() => handleIpAnimation()}
+            />
+          ) : (
+            <span style={{ visibility: "hidden" }}>000.000.000.000</span>
+          )}
+        </span>
+      </div>
+    )}
+
+    {/* 📱 Mobile: IP prints on next line */}
+    {isMobile && (
+      <div className="flex flex-col items-center justify-center space-y-1" style={{ whiteSpace: "pre" }}>
+        <span
+          id="ip-line"
+          className={`text-green-400 transition-opacity duration-700 ${fadeIPLine ? "opacity-0" : "opacity-100"}`}
+          style={{ display: "inline-block", width: `${PREFIX.length}ch` }}
+        >
+          <Typewriter
+            text={PREFIX}
+            speed={45}
+            cursor={false}
+            onComplete={() => setTimeout(() => setShowIPAddress(true), 800)}
+          />
+        </span>
+
+        <span
+          ref={ipSourceRef}
+          id="ip-address"
+          className="text-green-500 font-semibold overflow-hidden truncate text-xs"
+          style={{
+            display: "inline-block",
+            width: `${Math.max((ip ?? "").length, 15)}ch`,
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {showIPAddress ? (
+            <Typewriter
+              text={ip!}
+              speed={50}
+              cursor={false}
+              onComplete={() => handleIpAnimation()}
+            />
+          ) : (
+            <span style={{ visibility: "hidden" }}>000.000.000.000</span>
+          )}
+        </span>
+      </div>
+    )}
+  </div>
+)}
 
       {/* 🔒 Lock icon */}
       <div
