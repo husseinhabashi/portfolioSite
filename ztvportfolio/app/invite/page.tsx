@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Shield, ArrowLeft, Lock } from "lucide-react"
+import { Shield, ArrowLeft, Lock, Copy } from "lucide-react"
 
 export default function InvitePage() {
   const [email, setEmail] = useState("")
@@ -42,7 +42,6 @@ export default function InvitePage() {
     setLoading(true)
 
     try {
-      // 1️⃣ Verify invite with Zero-Trust signature
       const verifyRes = await fetch("/api/invites/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,7 +50,6 @@ export default function InvitePage() {
       const verifyData = await verifyRes.json()
       if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed")
 
-      // 2️⃣ Create session on backend
       const createSessionRes = await fetch("/api/session/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,12 +63,10 @@ export default function InvitePage() {
       if (!createSessionRes.ok)
         throw new Error(createSessionData.error || "Session creation failed")
 
-      // 🧩 Extract correct values
       const sessionFingerprint =
         createSessionData.sessionFingerprint || createSessionData.sessionId || fingerprint
       const sessionSignature = verifyData.signedSession || signature
 
-      // 3️⃣ Persist Zero-Trust headers
       sessionStorage.setItem("session_fingerprint", sessionFingerprint)
       sessionStorage.setItem("session_signature", sessionSignature)
       localStorage.setItem("headers:x-session-fingerprint", sessionFingerprint)
@@ -81,37 +77,44 @@ export default function InvitePage() {
         signature: sessionSignature,
       })
 
-// 4️⃣ Redirect securely
-setStatus("Invite verified ✅ Redirecting securely...")
+      setStatus("Invite verified! Redirecting securely...")
+      setTimeout(async () => {
+        const f = sessionStorage.getItem("session_fingerprint")
+        const s = sessionStorage.getItem("session_signature")
 
-setTimeout(async () => {
-  const fingerprint = sessionStorage.getItem("session_fingerprint")
-  const signature = sessionStorage.getItem("session_signature")
-
-  if (fingerprint && signature) {
-    // manually include Zero Trust headers on navigation
-    await fetch("/api/session/verify", {
-      headers: {
-        "x-session-fingerprint": fingerprint,
-        "x-signature": signature,
-      },
-    })
-
-    // create a one-time redirect with trust headers in query params
-    const url = new URL("/main", window.location.origin)
-    url.searchParams.set("f", fingerprint)
-    url.searchParams.set("s", signature)
-    window.location.href = url.toString()
-  } else {
-    window.location.href = "/invite"
-  }
-}, 1000)
+        if (f && s) {
+          await fetch("/api/session/verify", {
+            headers: { "x-session-fingerprint": f, "x-signature": s },
+          })
+          const url = new URL("/main", window.location.origin)
+          url.searchParams.set("f", f)
+          url.searchParams.set("s", s)
+          window.location.href = url.toString()
+        } else {
+          window.location.href = "/invite"
+        }
+      }, 1000)
     } catch (err) {
       console.error("❌ Verification error:", err)
       setError(err instanceof Error ? err.message : "Verification failed")
     } finally {
       setLoading(false)
     }
+  }
+
+  // 📋 Copy function
+  const handleCopy = async (value: string) => {
+    await navigator.clipboard.writeText(value)
+    setStatus(`Copied: ${value.substring(0, 10)}...`)
+    setTimeout(() => setStatus(""), 1500)
+  }
+
+  // Static universal invite data
+  const universal = {
+    email: "universal@auth",
+    inviteHash: "f04d17111337617e96470cfa762885854e55d9b3a2f31ddb935d57c50118e403",
+    signature:
+      "MEUCIHq+6M93ZaehLhq7Z3YfL5E/la8W7qGlSCexR4tpMeUnAiEAubQnSNeT8EHDFbFxuthoxky/BEPD3SgbTZE37IqNrpU=",
   }
 
   return (
@@ -138,6 +141,68 @@ setTimeout(async () => {
           </div>
         </div>
       </header>
+
+      {/* 📄 Universal Invite Info */}
+      <div className="container mx-auto px-4 mt-6 mb-2">
+        <Card className="border border-green-800/60 bg-black/70 text-green-400">
+          <CardHeader>
+            <CardTitle className="text-green-400 text-lg">Universal Access Credentials</CardTitle>
+            <CardDescription className="text-green-300/80">
+              Use these for instant access across devices
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Email:</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs sm:text-sm">{universal.email}</code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCopy(universal.email)}
+                  className="text-green-400 hover:text-black hover:bg-green-400"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Invite Hash:</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs sm:text-sm truncate max-w-[200px]">
+                  {universal.inviteHash}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCopy(universal.inviteHash)}
+                  className="text-green-400 hover:text-black hover:bg-green-400"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Signature:</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs sm:text-sm truncate max-w-[200px]">
+                  {universal.signature}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCopy(universal.signature)}
+                  className="text-green-400 hover:text-black hover:bg-green-400"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 🧾 Verification Card */}
       <div className="flex-1 flex items-center justify-center p-4">
