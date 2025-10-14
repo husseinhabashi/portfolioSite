@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, BriefcaseBusiness, Plus, Minus } from "lucide-react"
+import { ArrowLeft, BriefcaseBusiness, Plus, Minus, Target } from "lucide-react"
 
 export default function ExperiencePage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -55,6 +55,22 @@ export default function ExperiencePage() {
       takeaway:
         "Learned systems-level thinking and disciplined operational workflows that shaped my cybersecurity foundation.",
     },
+    {
+      title: "Bug Bounty & Web Application Recon",
+      period: "Ongoing",
+      summary:
+        "Independent offensive research and vulnerability hunting across real-world web applications and cloud environments.",
+      focus:
+        "Offensive security · Web exploitation · Recon automation · Vulnerability chaining.",
+      details: [
+        "Discovered and responsibly disclosed multiple high-impact vulnerabilities across public and private programs.",
+        "Developed custom GraphQL and API reconnaissance tooling for endpoint discovery and introspection abuse.",
+        "Automated web recon pipelines using Python, Lua, and custom AI-assisted modules.",
+        "Performed multi-stage exploit chaining for privilege escalation and lateral movement testing.",
+      ],
+      takeaway:
+        "Enhanced offensive methodology through continuous real-world testing — bridging research, automation, and professional red-team operations.",
+    },
   ]
 
   return (
@@ -78,7 +94,7 @@ export default function ExperiencePage() {
           </h1>
         </div>
         <p className="mt-2 text-xs sm:text-sm text-green-300/80">
-          Real-world experience bridging blue-team operations, security engineering, and infrastructure reliability.
+          Real-world experience bridging blue-team operations, offensive research, and infrastructure reliability.
         </p>
       </header>
 

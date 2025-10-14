@@ -67,8 +67,8 @@ export default function MainPageContent() {
   // Positions
   const IP_POSITION = {
     phone: { top: 1, left: 49 },
-    desktop: { top: 2, left: 35 },
-    center: { phone: { top: 50, left: 52 }, desktop: { top: 52, left: 40 } },
+    desktop: { top: 2.3, left: 37.5 },
+    center: { phone: { top: 50, left: 52 }, desktop: { top: 50, left: 37.5 } },
   }
 
   // Mobile breakpoint

@@ -32,7 +32,7 @@ export default function AIAssistant() {
         >
           <p className="text-xs text-green-400 opacity-80 leading-relaxed">
             [AI Terminal Active] — “Hello, I’m Nova, Hussein’s digital assistant.  
-            Ask me anything about Hussein!”
+            I'm still in product :( !”
           </p>
         </div>
       )}

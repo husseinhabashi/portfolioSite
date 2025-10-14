@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -14,12 +14,12 @@ import {
   Plus,
   Minus,
   BrainCircuit,
+  ExternalLink,
 } from "lucide-react"
 
 export default function ProjectsPage() {
   const router = useRouter()
 
-  // ✅ Moved projects inside main scope (not inside a nested return)
   const projects = [
     {
       title: "GraphCrack — Offensive GraphQL Security Framework",
@@ -34,11 +34,7 @@ export default function ProjectsPage() {
         "Integrated jitter, proxy rotation, and concurrency controls to simulate human attackers under WAFs.",
         "Reduced duplicated HTTP logic by 70% and improved reliability in cloud-scale fuzzing environments.",
       ],
-      showcase: [
-        "CLI screenshot: discovery → introspection → JWT brute-force → PoC report.",
-        "Diagram showing module flow: Discovery → Introspection → JWT Attack → Oracle → PoC.",
-        "GitHub + Markdown docs link (technical breakdown).",
-      ],
+      link: "https://github.com/husseinhabashi/portfolioSite",
       quote:
         "⚙️ GraphCrack bridges the gap between offensive research and defensive validation — showing how attackers weaponize GraphQL misconfigurations.",
     },
@@ -67,6 +63,7 @@ export default function ProjectsPage() {
         "CloudWatch integration for audit logging and uptime tracing.",
         "Modular design prepared for future traceroute / WHOIS / DNS lookup intents.",
       ],
+      link: "https://github.com/husseinhabashi/alexa-ping-api",
       quote:
         "🧩 Merges cloud automation, networking, and voice interaction — a playful but secure experiment in serverless design.",
     },
@@ -82,6 +79,7 @@ export default function ProjectsPage() {
         "Privacy-focused — no third-party data sharing or analytics pipelines.",
         "Modular SwiftUI architecture with reactive UI updates.",
       ],
+      link: "https://github.com/husseinhabashi/modaAiApp",
     },
     {
       title: "CTF Challenges & Labs",
@@ -100,7 +98,6 @@ export default function ProjectsPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const toggle = (index: number) => setOpenIndex(openIndex === index ? null : index)
 
-  // ✅ Actual render
   return (
     <div className="relative min-h-screen bg-black text-green-400 font-mono overflow-hidden">
       <div className="cyber-grid" />
@@ -172,15 +169,17 @@ export default function ProjectsPage() {
                     </ul>
                   )}
 
-                  {proj.showcase && (
-                    <>
-                      <p className="text-xs text-green-400 mb-1 font-semibold">Showcase:</p>
-                      <ul className="list-disc list-inside text-xs text-green-300/80 space-y-1">
-                        {proj.showcase.map((s, idx) => (
-                          <li key={idx}>{s}</li>
-                        ))}
-                      </ul>
-                    </>
+                  {proj.link && (
+                    <div className="mt-2">
+                      <a
+                        href={proj.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-green-400 hover:text-green-300 text-xs underline"
+                      >
+                        <ExternalLink className="h-3 w-3" /> View Project on GitHub
+                      </a>
+                    </div>
                   )}
 
                   {proj.quote && (
