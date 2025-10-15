@@ -79,7 +79,7 @@ export default function AIAssistant() {
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
               <p className="text-green-400/70 text-xs italic">
-                “Hi, I’m Nova — Hussein’s digital assistant. How can I help?”
+                Hi, I’m Nova—Hussein’s AI assistant. I’m here to represent him and answer any questions you have about his cybersecurity skills, projects, and professional background while he’s unavailable. How can I assist you today?
               </p>
             )}
 
