@@ -134,6 +134,28 @@
   --sidebar-ring: #00ff66;
 }
 
+@keyframes novaPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px rgba(99, 102, 241, 0.6),
+      0 0 24px rgba(99, 102, 241, 0.4),
+      0 0 48px rgba(99, 102, 241, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(99, 102, 241, 0.9),
+      0 0 64px rgba(99, 102, 241, 0.8),
+      0 0 96px rgba(99, 102, 241, 0.5);
+    filter: brightness(1.35);
+  }
+}
+
+.nova-glow {
+  animation: novaPulse 3s ease-in-out infinite;
+  transition: filter 0.3s ease;
+}
+
 /* 🌙 Dark mode version (just slightly more contrast) */
 .dark {
   --background: #000000;

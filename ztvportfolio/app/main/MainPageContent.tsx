@@ -103,6 +103,14 @@ export default function MainPageContent() {
       timeouts.current.push(id)
     }
   }
+
+        useEffect(() => {
+  if (showDashboard && !showAI) {
+    const timer = setTimeout(() => setShowAI(true), 2000)
+    return () => clearTimeout(timer)
+  }
+}, [showDashboard, showAI])
+
   useEffect(() => {
     return () => {
       timeouts.current.forEach(clearTimeout)
@@ -192,6 +200,7 @@ export default function MainPageContent() {
   }, [showIPAddress])
 
   if (!verified) return null
+
 
   function handleIpAnimation() {
   setFadeIPLine(true)
@@ -538,48 +547,43 @@ export default function MainPageContent() {
         </div>
       )}
 
-      {/* 🧩 Dashboard Section */}
-      {showDashboard && (
-        <div className="relative flex flex-col items-center justify-center w-full pt-24 pb-16 px-6">
-          <DashboardGrid
-            onComplete={() => {
-              // Wait 1 second after grid finishes, then show Nova
-              setTimeout(() => setShowAI(true), 1000)
-            }}
-          />
+ {showDashboard && (
+  <div className="relative flex flex-col items-center justify-center w-full pt-24 pb-16 px-6">
+    <DashboardGrid onComplete={() => setShowAI(true)} />
 
-          {/* 🧠 Nova AI Assistant — bottom-right entrance */}
-          {showAI && (
-            <motion.div
-              initial={{
-                opacity: 0,
-                scale: 0.8,
-                y: 30,
-                x: 30,
-                filter: "blur(8px)",
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                y: 0,
-                x: 0,
-                filter: "blur(0px)",
-              }}
-              transition={{
-                duration: 1,
-                ease: "easeOut",
-              }}
-              className="fixed bottom-6 right-6 z-50"
-              style={{
-                boxShadow: "none",
-                filter: "none",
-              }}
-            >
-              <AIAssistant />
-            </motion.div>
-          )}
+    {/* Fallback safety: show Nova after 2s even if animation never triggers */}
+  </div>
+)}
+
+{/* 🧠 Nova AI Assistant — bottom-right entrance */}
+{showAI && (
+  <motion.div
+    initial={{
+      opacity: 0,
+      scale: 0.8,
+      y: 30,
+      x: 30,
+      filter: "blur(8px)",
+    }}
+    animate={{
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      x: 0,
+      filter: "blur(0px)",
+    }}
+    transition={{
+      duration: 1,
+      ease: "easeOut",
+    }}
+    className="fixed bottom-6 right-6 z-50"
+    style={{
+      boxShadow: "none",
+      filter: "none",
+    }}
+  >
+    <AIAssistant />
+  </motion.div>
+)}
         </div>
       )}
-    </div>
-  )
-}
