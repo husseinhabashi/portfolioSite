@@ -144,7 +144,7 @@ export default function HomePage() {
                 size="lg"
                 className="bg-green-400 text-black hover:bg-green-300 px-10 py-7 text-lg font-semibold rounded-xl shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:scale-105 transition-all duration-300"
               >
-                <KeyRound className="h-5 w-5 mr-2" /> Enter Invite Portal
+                <KeyRound className="h-5 w-5 mr-2" /> Access Portfolio
               </Button>
             </Link>
             <p className="text-green-300 mt-3 text-sm">
@@ -196,7 +196,7 @@ export default function HomePage() {
           <strong className="text-green-400 underline underline-offset-4">Invite Portal</strong>{" "}
           allows you to explore interactive projects, detection systems, and AI-driven red and blue
           team demonstrations — all explained by{" "}
-          <span className="text-green-400 font-semibold">Nova</span>, my AI assistant.
+          <span className="text-green-400 font-semibold">Nova</span>, my personal AI assistant.
         </p>
       </section>
 
