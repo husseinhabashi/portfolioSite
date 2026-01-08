@@ -1,84 +1,166 @@
 // app/api/nova/route.ts
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
-// 🧠 Nova’s full system instruction
-const NOVA_SYSTEM_PROMPT = `
-You are Nova, Hussein's digital AI assistant, integrated into his Zero Trust Vault portfolio website.
-You act as Hussein’s representative, providing recruiters and hiring managers with information about him whenever he is unavailable.
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const ASSISTANT_ID = process.env.NOVA_ASSISTANT_ID
 
-Nova’s Role and Behavior:
-- Proactively introduce yourself as Hussein’s AI assistant if not already clear in the conversation.
-- Answer queries about Hussein’s skills, projects, certifications, and cybersecurity expertise for a professional audience—typically recruiters and hiring managers.
-- Always present yourself as the point of contact when Hussein is not available, using phrasing like, “As Hussein’s assistant, I can share…” or “I’m here to answer…” etc.
-- Use a smart, composed, slightly sarcastic tone when appropriate. Project confidence and technical depth, especially in areas like Security Operations Centers (SOC), PenTesting, and Red/Blue Team operations.
-- Respond using brief, impactful sentences. Speak with the professional assurance of a seasoned SOC analyst and hacker ally.
-- Offer clear and technically insightful explanations of relevant cybersecurity concepts and Hussein’s contributions only upon request.
-- Never discuss Hussein’s private life, current location, or contact information unless explicitly listed below.
-- You may share Hussein’s contact info only if asked directly:
-  • Phone: 908-547-7030
-  • Email: habashi.hussein03@gmail.com
-  • LinkedIn: https://www.linkedin.com/in/husseinhabashi/
-- Politely decline inappropriate requests or questions, maintaining professionalism and Nova’s assistant persona.
-- Refer to "Hussein_Skills.md" for technical reference.
+const client = new OpenAI({ apiKey: OPENAI_API_KEY })
 
-Hussein has four projects:
-- ZeroTrustVault (this website)
-- GraphCrack
-- GhostNode
-- Moda
-He is currently developing WebHound.
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
-Your answers to questions should be relevant only to the question.
-Always stay in character as Nova, Hussein’s assistant.
-`
+function extractTextFromAssistantMessage(message: any): string {
+  if (!message?.content || !Array.isArray(message.content)) return "Nova: [No response]"
+  const chunks: string[] = []
+  for (const part of message.content) {
+    if (part?.type === "text" && part?.text?.value) chunks.push(part.text.value)
+  }
+  return chunks.length ? chunks.join("\n") : "Nova: [No response]"
+}
+
+function safeError(err: any) {
+  return {
+    name: err?.name,
+    message: err?.message,
+    status: err?.status,
+    code: err?.code,
+    type: err?.type,
+    error: err?.error,
+  }
+}
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json()
-
-    // ✅ Call the Responses API
-    const response = await client.responses.create({
-      model: "gpt-4.1",
-      input: [
-        { role: "system", content: NOVA_SYSTEM_PROMPT },
-        { role: "user", content: message },
-      ],
-      temperature: 0.7,
-      max_output_tokens: 800,
-    })
-
-    // ✅ Safely extract text output regardless of type
-    let outputText = "Nova: [No response]"
-    if (response.output && Array.isArray(response.output)) {
-      const textChunks: string[] = []
-      for (const item of response.output) {
-        // Each item can contain multiple content blocks
-        if (
-          "content" in item &&
-          Array.isArray((item as any).content)
-        ) {
-          for (const block of (item as any).content) {
-            if (block.type === "output_text" || block.type === "text") {
-              textChunks.push(block.text)
-            }
-          }
-        }
-      }
-      if (textChunks.length > 0) outputText = textChunks.join("\n")
-    } else if (response.output_text) {
-      outputText = response.output_text
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "Server misconfigured: missing OPENAI_API_KEY." },
+        { status: 500 }
+      )
+    }
+    if (!ASSISTANT_ID) {
+      return NextResponse.json(
+        { error: "Server misconfigured: missing NOVA_ASSISTANT_ID." },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({ output_text: outputText })
-  } catch (err) {
-    console.error("[Nova API Error]", err)
+    const body = await req.json().catch(() => null)
+    const message = typeof body?.message === "string" ? body.message.trim() : ""
+
+    if (!message) {
+      return NextResponse.json({ error: "Missing 'message' in request body." }, { status: 400 })
+    }
+
+    // 1) Thread ID resolution (client -> cookie -> new thread)
+    const clientThreadId =
+      typeof body?.thread_id === "string" && body.thread_id.trim()
+        ? body.thread_id.trim()
+        : null
+
+    const jar = await cookies()
+    const cookieThreadId = jar.get("nova_thread_id")?.value ?? null
+
+    let threadId = clientThreadId ?? cookieThreadId
+
+    if (!threadId) {
+      threadId = (await client.beta.threads.create()).id
+    }
+
+    console.log("[Nova] threadId used:", threadId, {
+      fromClient: !!clientThreadId,
+      fromCookie: !!cookieThreadId && !clientThreadId,
+      createdNew: !clientThreadId && !cookieThreadId,
+    })
+
+    // 2) Add user message (this builds history in the same thread)
+    await client.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: message,
+    })
+
+    // 3) Run assistant (uses dashboard files + file_search)
+    const run = await client.beta.threads.runs.create(threadId, {
+      assistant_id: ASSISTANT_ID,
+    })
+
+    // 4) Poll until complete
+    const TIMEOUT_MS = 45_000
+    const POLL_MS = 500
+    const start = Date.now()
+
+    let current = run
+    while (["queued", "in_progress", "cancelling"].includes(current.status)) {
+      if (Date.now() - start > TIMEOUT_MS) {
+        console.error("[Nova Timeout]", { thread_id: threadId, run_id: run.id })
+        const res = NextResponse.json({ error: "Nova timed out.", thread_id: threadId }, { status: 504 })
+        res.cookies.set("nova_thread_id", threadId, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: true,
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+        })
+        return res
+      }
+
+      await sleep(POLL_MS)
+      current = await client.beta.threads.runs.retrieve(run.id, { thread_id: threadId })
+    }
+
+    if (current.status !== "completed") {
+      console.error("[Nova Run Not Completed]", {
+        thread_id: threadId,
+        run_id: run.id,
+        status: current.status,
+        last_error: (current as any)?.last_error,
+      })
+
+      const res = NextResponse.json(
+        {
+          error: "Nova failed to generate a response.",
+          status: current.status,
+          last_error: (current as any)?.last_error ?? null,
+          thread_id: threadId,
+        },
+        { status: 500 }
+      )
+
+      res.cookies.set("nova_thread_id", threadId, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      })
+
+      return res
+    }
+
+    // 5) Get newest assistant reply
+    const msgs = await client.beta.threads.messages.list(threadId, { order: "desc", limit: 20 })
+    const assistantMsg = msgs.data.find((m: any) => m.role === "assistant")
+    const outputText = extractTextFromAssistantMessage(assistantMsg)
+
+    // ✅ Always set cookie so browser keeps thread even if frontend doesn't store it
+    const res = NextResponse.json({ output_text: outputText, thread_id: threadId })
+    res.cookies.set("nova_thread_id", threadId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    })
+    return res
+  } catch (err: any) {
+    console.error("[Nova API Error]", safeError(err))
     return NextResponse.json(
-      { error: "Failed to connect to Nova." },
+      { error: "Failed to connect to Nova.", details: safeError(err) },
       { status: 500 }
     )
   }
