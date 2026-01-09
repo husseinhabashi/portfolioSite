@@ -17,6 +17,7 @@ import {
   KeyRound,
   Bot,
   Cpu,
+  ChevronDown,
 } from "lucide-react"
 import { SessionFingerprintDisplay } from "@/components/session-fingerprint-display"
 import { SessionWatermark } from "@/components/session-watermark"
@@ -33,6 +34,10 @@ export default function HomePage() {
       .catch(() => {})
   }, [])
 
+  const scrollToAbout = () => {
+    document.querySelector("#about")?.scrollIntoView({ behavior: "smooth" })
+  }
+
   return (
     <main className="relative min-h-screen bg-background text-foreground overflow-hidden">
       {/* Security Layers */}
@@ -40,7 +45,7 @@ export default function HomePage() {
       <SessionWatermark />
       <TrackingPixel />
 
-      {/* Background Glow (no dense grid) */}
+      {/* Background Glow */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,102,0.06),transparent_70%)]" />
@@ -88,7 +93,43 @@ export default function HomePage() {
       </header>
 
       {/* HERO */}
-      <section className="flex flex-col items-center justify-center min-h-screen text-center px-6 pt-32">
+      <section className="relative flex flex-col items-center justify-center min-h-screen text-center px-6 pt-32">
+        {/* ✅ Right-side scroll cue (above the fold, always visible) */}
+        <motion.button
+          type="button"
+          aria-label="Scroll to learn more"
+          onClick={scrollToAbout}
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.9, duration: 0.8, ease: "easeOut" }}
+          className="
+            fixed
+            right-6
+            top-1/2
+            -translate-y-1/2
+            z-50
+            group
+            flex
+            items-center
+            gap-3
+            rounded-full
+            border
+            border-indigo-600/60
+            bg-black/40
+            backdrop-blur
+            px-4
+            py-3
+            text-indigo-300
+            hover:text-white
+            hover:bg-indigo-800/20
+            transition
+          "
+          style={{ boxShadow: "0 0 14px rgba(99,102,241,0.25)" }}
+        >
+          <span className="text-[11px] tracking-[0.25em] uppercase">More</span>
+          <ChevronDown className="h-5 w-5 animate-bounce text-indigo-300 group-hover:text-white" />
+        </motion.button>
+
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -129,7 +170,8 @@ export default function HomePage() {
             <br />
             <br />
             All portfolio content is gated for security and can be accessed exclusively through the{" "}
-            <strong className="text-[var(--primary)] underline underline-offset-4">Invite Portal</strong> below.
+            <strong className="text-[var(--primary)] underline underline-offset-4">Invite Portal</strong>{" "}
+            below.
           </motion.p>
 
           {/* CTA */}
@@ -148,8 +190,8 @@ export default function HomePage() {
               </Button>
             </Link>
             <p className="text-[var(--muted-foreground)] mt-3 text-sm">
-              (Use the <span className="font-semibold text-[var(--primary)]">Invite Portal</span> to access the full portfolio.  
-              Universal credentials are displayed there.)
+              (Use the <span className="font-semibold text-[var(--primary)]">Invite Portal</span> to
+              access the full portfolio. Universal credentials are displayed there.)
             </p>
           </motion.div>
 
@@ -184,12 +226,15 @@ export default function HomePage() {
       </section>
 
       {/* ABOUT SECTION */}
-      <section className="container mx-auto max-w-5xl px-6 py-28 text-center space-y-8 border-t border-border/40">
+      <section
+        id="about"
+        className="container mx-auto max-w-5xl px-6 py-28 text-center space-y-8 border-t border-border/40"
+      >
         <h2 className="text-4xl font-bold text-[var(--primary)]">Inside the Vault</h2>
         <p className="text-[var(--muted-foreground)] font-light leading-relaxed text-lg max-w-3xl mx-auto">
           ZeroTrustVault is not a static website — it’s a functioning cybersecurity environment.
           Each component (from invite signatures to IP binding) mirrors real-world enterprise
-          security design.  
+          security design.
           <br />
           <br />
           Accessing the portfolio through the{" "}
